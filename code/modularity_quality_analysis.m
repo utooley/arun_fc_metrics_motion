@@ -1,10 +1,12 @@
 %% SETUP
-subj_dir=
-data_dir=
-
+%mounted locally on work computer
+subj_dir='~/Desktop/cluster/jag/bassett-lab/hcp_Max/Data/Covariates'
+data_dir='~/Desktop/cluster/jag/bassett-lab/hcp_Max/Data/FunctionalConnectivityMatrices'
+scripts_dir=
 
 %subject list
-S1200_Release_Subjects_Demographics.csv
+subjList=readtable(fullfile(subj_dir, 'S1200_Release_Subjects_Demographics.csv'));
+subjList=subjList.Subject;
 %%
 %for each subject
 
