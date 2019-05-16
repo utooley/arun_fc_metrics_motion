@@ -6,7 +6,6 @@
 subj_dir='~/Desktop/cluster/jag/bassett-lab/hcp_Max/Data/Covariates'
 data_dir='~/Desktop/cluster/jag/bassett-lab/hcp_Max/Data/FunctionalConnectivityMatrices'
 scripts_dir=
-outdir='~/Documents/projects/in_progress/arun_fc_metrics_motion/output/data/'
 
 %subject list
 subjList=readtable(fullfile(subj_dir, 'S1200_Release_Subjects_Demographics.csv'));
@@ -92,14 +91,13 @@ num_communities.(metric)=zeros(length(subjList),1); %set up num communities
 % while the average number of communities detected across participants is
 % less than 7, keep iterating
     avgnumcommunities=0
-    gamma=1;
+    gamma=2;
     while (avgnumcommunities < 6.5 | avgnumcommunities > 7.5)
 %%%%%%
 %for each subject
 %%%%%%
 for n=1:length(subjList);
-    sub=subjList(n)
-    try
+    sub=subjList(n);
     %load the Pearson correlation matrix
     file=fullfile(data_dir,strcat('gordon_',num2str(sub),run,'FIX_matrices_Pearson.mat'));
     load(file);
@@ -116,8 +114,8 @@ for n=1:length(subjList);
     file=fullfile(data_dir,strcat('gordon_',num2str(sub),run,'FIX_matrices_', metric,'.mat'));
     load(file);
     %AdjMat( AdjMat == 0 ) = NaN; %to avoid 0's being sorted in the order
-    values_only=sort(AdjMat(AdjMat~=0),'descend'); %no 0's being sorted in the order
-    values_only_unique=values_only(1:2:end);%remove duplicate rows from each edge appearing twice
+    values_only=sort(AdjMat(AdjMat~=0),'descend') %no 0's being sorted in the order
+    values_only_unique=values_only(1:2:end)%remove duplicate rows from each edge appearing twice
     [l,idx]=ismember(AdjMat,values_only_unique); %order the edge weights by weight, index is 1=largest to smallest
     AdjMat_swap=AdjMat; %make a copy of the matrix
     size(unique(idx(:)))%check length of the index, should match weights_unique!
@@ -132,12 +130,14 @@ for n=1:length(subjList);
     %weighting of negative weights since Pearson
     [M Q]=community_louvain(AdjMat_swap, gamma, [], 'negative_asym');
     modul.(metric)(n,1)=Q;
-    num_communities.(metric)(n,1)=length(unique(M));
-    num_communities.(metric)%how many communities were output
+    num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
     %cycle through to ensure that the mean number of communities is 7
     %(mean across iterations of Gen Louvain, or mean across subjects)?
     
     %%save outfile for each metric
+    
+    avgnumcommunities=mean(num_communities.(metric)(num_communities.(metric)~=0))
+    gamma=gamma+0.3
     %WHY DOES PEARSON AND SPEARMAN HAVE MORE UNIQUE WEIGHTS THAN EDGES?
 %     %Troubleshooting
 %     [C, ia, ic] = unique(PearsMat,'stable')
@@ -150,21 +150,14 @@ for n=1:length(subjList);
 %     find(AdjMat == min(AdjMat(AdjMat~=0))) %these work, great! Except for Pearson matrices, which have overlapping unique values > num_edges. 
     %Figured out that it was because of floating point precision of the
     %Pearson and Spearman matrices
-    catch
-        disp('This subject not found')
     end
-    end
-    avgnumcommunities=mean(num_communities.(metric)(num_communities.(metric)~=0))
-    gamma=gamma+0.3
 end
 end
     
 %% Save outfiles for each run
 
 outfile=dataset(modul.Pearson, modul.Spearman, modul.Coherence, modul.WaveletCoherence, modul.MutualInformation, modul.MutualInformationTime, num_communities.Pearson, num_communities.Spearman, num_communities.Coherence, num_communities.WaveletCoherence, num_communities.MutualInformation, num_communities.MutualInformationTime, gamma)
-filename=strcat('modularity_reranked_Pearson_weights_into',metric, run, '51619.csv')
+filename=strcat('modularity_reranked_Pearsonrun, '51619.csv')
 export(outfile,'File',fullfile(outdir,filename),'Delimiter',',')
 
-
-end
 
