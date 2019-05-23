@@ -160,6 +160,8 @@ end
 end
     
 %% Save outfiles for each run
+save(fullfile(outdir, 'modul'), modul.(metric))
+save(fullfile(outdir, 'numcommunities'), num_communities.(metric))
 
 outfile=dataset(modul.Pearson, modul.Spearman, modul.Coherence, modul.WaveletCoherence, modul.MutualInformation, modul.MutualInformationTime, num_communities.Pearson, num_communities.Spearman, num_communities.Coherence, num_communities.WaveletCoherence, num_communities.MutualInformation, num_communities.MutualInformationTime, gamma)
 filename=strcat('modularity_reranked_Pearson_weights_into',metric, run, '51619.csv')
