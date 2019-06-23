@@ -1,0 +1,433 @@
+---
+title: "FC Metrics Susceptibility to Motion- Gordon ICA Fix Only"
+output:
+  html_document:
+    toc: true
+    theme: united
+    toc_depth: 6
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(psych)
+library(gam)
+library(summarytools)
+library(PerformanceAnalytics)
+library(ppcor)
+library(reshape2)
+```
+
+# Run 1
+Skip this part after it's done once for each:
+```{r read in txt motion files and write them out, include=FALSE}
+mydir="~/Documents/projects/in_progress/arun_fc_metrics_motion/data/subjData/Motion_S1200/rfMRI_REST2_LR/"
+myfiles <- list.files(mydir, full.names = TRUE, pattern = "*.txt")
+mytxts <- lapply(myfiles, readLines)
+mytxts1lines <- unlist(mytxts)
+mytxtsdf <- data.frame(filename = basename(myfiles),fulltext = mytxts1lines)
+x <- colsplit(mytxtsdf$filename, '_', names =  c('subject','Movement', 'RMS','mean.txt'))
+mytxtsdf$subject <- x$subject
+mytxtsdf <- mytxtsdf %>% dplyr::select(., c("subject", "fulltext"))
+# write it out
+write.table(mytxtsdf, file = paste0(mydir, "/rfMRI_REST2_LR.csv"), sep = ",", row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+```{r load data, include=FALSE}
+data_dir="~/Documents/projects/in_progress/arun_fc_metrics_motion/"
+dropbox_data="~/Dropbox/projects/in_progress/arun_fc_metrics_motion/output/data/Gordon_ICA_FIX/"
+
+runs=c("REST1_LR", "REST1_RL")
+metrics=c("Pearson", "Spearman", "Coherence", "WaveletCoherence", "MutualInformation","MutualInformationTime")
+run1_data=read.csv(paste0(dropbox_data, "modularity_raw_REST1_LR_060319.csv"))
+subject_list=read.csv(paste0(data_dir, "data/subjLists/S1200_Release_Subjects_Demographics.csv"))
+subject_list <- subject_list %>% dplyr::select(.,Subject:Age) %>% rename(., subject=Subject)
+```
+
+
+```{r clean data, include=FALSE}
+mydir="~/Documents/projects/in_progress/arun_fc_metrics_motion/data/subjData/Motion_S1200/rfMRI_REST1_LR/"
+motiondata <- read.csv(paste0(mydir,"/rfMRI_REST1_LR.csv"), header = FALSE, col.names = c("subject", "motion"))
+modul_data <- data.frame(subject_list, run1_data)
+alldata <- merge(modul_data, motiondata, by = "subject", all = TRUE)
+alldata <- alldata %>% filter(., num_communities_Pearson != 0)
+#recode age to be the median of the bins that are provided
+alldata$Age_numeric <- dplyr::recode(alldata$Age, "22-25"= 23.5, "26-30"=28, "31-35"=33, "36+"=38)
+dim(alldata)
+```
+Check dim for number of subjects here, to see if it is the same as that that Arun has for each of the 4 runs.
+
+```{r summary, echo=TRUE}
+#summary(alldata)
+```
+
+## Avg weight and motion
+
+```{r avgweight motion, echo=TRUE}
+#For each of the 6 metrics, plot the correlation between the average weight and motion
+par(mfrow=c(2,3))
+
+myPlot<-function(index) {
+  plot(alldata[,index] ~ alldata$motion, main=names(alldata[index]),pch=16,xlab="Motion",ylab=names(alldata)[index])
+       }
+lapply(6:11,FUN=myPlot)
+#calculate the correlation between average weight and motion
+formulaeAsText <- paste(names(alldata)[6:11], " ~ motion", sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+rawcorr_avgweight<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+rawcorr_avgweight_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+rawmotioncorr <- data.frame(names(alldata)[6:11], unlist(rawcorr_avgweight_sigmotion))
+rawmotioncorr
+```
+## Raw modularity and motion
+
+```{r modularity motion, echo=TRUE}
+#For each of the 6 metrics, plot the correlation between the raw modularity metrics calculated when tuning for 7 communities and motion
+par(mfrow=c(2,3))
+
+myPlot<-function(index) {
+  plot(alldata[,index] ~ alldata$motion, main=names(alldata[index]),pch=19,xlab="Motion", col= "blue",ylab=names(alldata)[index])
+       }
+lapply(12:17,FUN=myPlot)
+
+#calculate the relationship between raw modularity and motion
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion", sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+rawcorr_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+rawcorr_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+rawmotionmodul_corr <- data.frame(names(alldata)[12:17], unlist(rawcorr_modul_sigmotion))
+rawmotionmodul_corr
+```
+
+## Modularity and motion, controlling for avg weight
+```{r controlling for avgweight modul, echo=TRUE}
+#calculate the relationship between modularity and motion controlling for avg weight
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion + avgweight_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+motionmodul_corr <- data.frame(names(alldata)[12:17], unlist(corr_modul_sigmotion))
+motionmodul_corr
+```
+
+## Modularity and motion, controlling for all covariates
+```{r controlling for avgweight and covariates modul, echo=TRUE}
+#calculate the relationship between modularity and motion controlling for avg weight
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion + Age_numeric + Gender + avgweight_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_covary_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_covary_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+motionmodul_corr_covary <- data.frame(names(alldata)[12:17], unlist(corr_covary_modul_sigmotion))
+motionmodul_corr_covary
+```
+
+## Is this affected by differences in number of communities detected across subjects and metrics?
+
+Are the number of communities correlated with motion? And then, does the same pattern of sig relationships present if controlling for number of communities detected for each subject?
+```{r number of communities found per subject, echo=TRUE}
+#calculate the relationship between motion and number of communities detected
+formulaeAsText <- paste(names(alldata)[18:23], " ~ motion + avgweight_",unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_numcomms<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_numcomms_sigmotion<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+numcomms_corr <- data.frame(names(alldata)[12:17], unlist(corr_numcomms_sigmotion))
+numcomms_corr
+
+#calculate the relationship between modularity and motion also controlling for the number of communities found for each subject
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion + Age_numeric + Gender + avgweight_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], "+ num_communities_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_covary2_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_covary2_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+motionmodul_corr2_covary <- data.frame(names(alldata)[12:17], unlist(corr_covary2_modul_sigmotion))
+motionmodul_corr2_covary
+```
+
+# Run 2
+```{r load data 2, include=FALSE}
+data_dir="~/Documents/projects/in_progress/arun_fc_metrics_motion/"
+dropbox_data="~/Dropbox/projects/in_progress/arun_fc_metrics_motion/output/data/Gordon_ICA_FIX/"
+run1_data=read.csv(paste0(dropbox_data, "modularity_raw_REST1_RL_060319.csv"))
+subject_list=read.csv(paste0(data_dir, "data/subjLists/S1200_Release_Subjects_Demographics.csv"))
+subject_list <- subject_list %>% dplyr::select(.,Subject:Age) %>% rename(., subject=Subject)
+```
+
+```{r clean data 2, include=FALSE}
+mydir="~/Documents/projects/in_progress/arun_fc_metrics_motion/data/subjData/Motion_S1200/rfMRI_REST1_RL/"
+motiondata <- read.csv(paste0(mydir,"/rfMRI_REST1_RL.csv"), header = FALSE, col.names = c("subject", "motion"))
+modul_data <- data.frame(subject_list, run1_data)
+alldata <- merge(modul_data, motiondata, by = "subject", all = TRUE)
+alldata <- alldata %>% filter(., num_communities_Pearson != 0)
+#recode age to be the median of the bins that are provided
+alldata$Age_numeric <- dplyr::recode(alldata$Age, "22-25"= 23.5, "26-30"=28, "31-35"=33, "36+"=38)
+dim(alldata)
+```
+## Avg weight and motion
+
+```{r avgweight motion 2, echo=TRUE}
+#For each of the 6 metrics, plot the correlation between the average weight and motion
+par(mfrow=c(2,3))
+
+myPlot<-function(index) {
+  plot(alldata[,index] ~ alldata$motion, main=names(alldata[index]),pch=16,xlab="Motion",ylab=names(alldata)[index])
+       }
+lapply(6:11,FUN=myPlot)
+#calculate the correlation between average weight and motion
+formulaeAsText <- paste(names(alldata)[6:11], " ~ motion", sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+rawcorr_avgweight<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+rawcorr_avgweight_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+rawmotioncorr <- data.frame(names(alldata)[6:11], unlist(rawcorr_avgweight_sigmotion))
+rawmotioncorr
+```
+## Raw modularity and motion
+
+```{r modularity motion 2, echo=TRUE}
+#For each of the 6 metrics, plot the correlation between the raw modularity metrics calculated when tuning for 7 communities and motion
+par(mfrow=c(2,3))
+myPlot<-function(index) {
+  plot(alldata[,index] ~ alldata$motion, main=names(alldata[index]),pch=19,xlab="Motion", col= "blue",ylab=names(alldata)[index])
+       }
+lapply(12:17,FUN=myPlot)
+
+#calculate the relationship between raw modularity and motion
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion", sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+rawcorr_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+rawcorr_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+rawmotionmodul_corr <- data.frame(names(alldata)[12:17], unlist(rawcorr_modul_sigmotion))
+rawmotionmodul_corr
+```
+
+## Modularity and motion, controlling for avg weight
+```{r controlling for avgweight modul 2, echo=TRUE}
+#calculate the relationship between modularity and motion controlling for avg weight
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion + avgweight_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+motionmodul_corr <- data.frame(names(alldata)[12:17], unlist(corr_modul_sigmotion))
+motionmodul_corr
+```
+
+## Modularity and motion, controlling for all covariates
+```{r controlling for avgweight and covariates modul 2, echo=TRUE}
+#calculate the relationship between modularity and motion controlling for avg weight
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion + Age_numeric + Gender + avgweight_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_covary_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_covary_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+motionmodul_corr_covary <- data.frame(names(alldata)[12:17], unlist(corr_covary_modul_sigmotion))
+motionmodul_corr_covary
+```
+
+## Is this affected by differences in number of communities detected across subjects and metrics?
+Are the number of communities correlated with motion? And then, does the same pattern of sig relationships present if controlling for number of communities detected for each subject?
+```{r number of communities found per subject 2, echo=TRUE}
+#calculate the relationship between motion and number of communities detected
+formulaeAsText <- paste(names(alldata)[18:23], " ~ motion + avgweight_",unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_numcomms<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_numcomms_sigmotion<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+numcomms_corr <- data.frame(names(alldata)[12:17], unlist(corr_numcomms_sigmotion))
+numcomms_corr
+
+#calculate the relationship between modularity and motion also controlling for the number of communities found for each subject
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion + Age_numeric + Gender + avgweight_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], "+ num_communities_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_covary2_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_covary2_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+motionmodul_corr2_covary <- data.frame(names(alldata)[12:17], unlist(corr_covary2_modul_sigmotion))
+motionmodul_corr2_covary
+```
+# Run 3
+
+```{r load data 3, include=FALSE}
+run1_data=read.csv(paste0(dropbox_data, "modularity_raw_REST2_LR_060319.csv"))
+subject_list=read.csv(paste0(data_dir, "data/subjLists/S1200_Release_Subjects_Demographics.csv"))
+subject_list <- subject_list %>% dplyr::select(.,Subject:Age) %>% rename(., subject=Subject)
+```
+
+```{r clean data 3, include=FALSE}
+mydir="~/Documents/projects/in_progress/arun_fc_metrics_motion/data/subjData/Motion_S1200/rfMRI_REST2_LR/"
+motiondata <- read.csv(paste0(mydir,"/rfMRI_REST2_LR.csv"), header = FALSE, col.names = c("subject", "motion"))
+modul_data <- data.frame(subject_list, run1_data)
+alldata <- merge(modul_data, motiondata, by = "subject", all = TRUE)
+alldata <- alldata %>% filter(., num_communities_Pearson != 0)
+#recode age to be the median of the bins that are provided
+alldata$Age_numeric <- dplyr::recode(alldata$Age, "22-25"= 23.5, "26-30"=28, "31-35"=33, "36+"=38)
+dim(alldata)
+```
+## Avg weight and motion
+
+```{r avgweight and motion 3, echo=TRUE}
+#For each of the 6 metrics, plot the correlation between the average weight and motion
+par(mfrow=c(2,3))
+
+myPlot<-function(index) {
+  plot(alldata[,index] ~ alldata$motion, main=names(alldata[index]),pch=16,xlab="Motion",ylab=names(alldata)[index])
+       }
+lapply(6:11,FUN=myPlot)
+#calculate the correlation between average weight and motion
+formulaeAsText <- paste(names(alldata)[6:11], " ~ motion", sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+rawcorr_avgweight<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+rawcorr_avgweight_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+rawmotioncorr <- data.frame(names(alldata)[6:11], unlist(rawcorr_avgweight_sigmotion))
+rawmotioncorr
+```
+## Raw modularity and motion
+
+```{r modularity and motion 3, echo=TRUE}
+#For each of the 6 metrics, plot the correlation between the raw modularity metrics calculated when tuning for 7 communities and motion
+par(mfrow=c(2,3))
+myPlot<-function(index) {
+  plot(alldata[,index] ~ alldata$motion, main=names(alldata[index]),pch=19,xlab="Motion", col= "blue",ylab=names(alldata)[index])
+       }
+lapply(12:17,FUN=myPlot)
+
+#calculate the relationship between raw modularity and motion
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion", sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+rawcorr_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+rawcorr_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+rawmotionmodul_corr <- data.frame(names(alldata)[12:17], unlist(rawcorr_modul_sigmotion))
+rawmotionmodul_corr
+```
+
+## Modularity and motion, controlling for avg weight
+```{r controlling for avgweight modul 3, echo=TRUE}
+#calculate the relationship between modularity and motion controlling for avg weight
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion + avgweight_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+motionmodul_corr <- data.frame(names(alldata)[12:17], unlist(corr_modul_sigmotion))
+motionmodul_corr
+```
+
+## Modularity and motion, controlling for all covariates
+```{r controlling for avgweight and covariates modul 3, echo=TRUE}
+#calculate the relationship between modularity and motion controlling for avg weight
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion + Age_numeric + Gender + avgweight_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_covary_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_covary_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+motionmodul_corr_covary <- data.frame(names(alldata)[12:17], unlist(corr_covary_modul_sigmotion))
+motionmodul_corr_covary
+```
+
+## Is this affected by differences in number of communities detected across subjects and metrics?
+Are the number of communities correlated with motion? And then, does the same pattern of sig relationships present if controlling for number of communities detected for each subject?
+```{r number of communities found per subject 3, echo=TRUE}
+#calculate the relationship between motion and number of communities detected
+formulaeAsText <- paste(names(alldata)[18:23], " ~ motion + avgweight_",unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_numcomms<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_numcomms_sigmotion<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+numcomms_corr <- data.frame(names(alldata)[12:17], unlist(corr_numcomms_sigmotion))
+numcomms_corr
+
+#calculate the relationship between modularity and motion also controlling for the number of communities found for each subject
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion + Age_numeric + Gender + avgweight_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], "+ num_communities_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_covary2_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_covary2_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+motionmodul_corr2_covary <- data.frame(names(alldata)[12:17], unlist(corr_covary2_modul_sigmotion))
+motionmodul_corr2_covary
+```
+
+# Run 4
+```{r load data 4, include=FALSE}
+run1_data=read.csv(paste0(dropbox_data, "modularity_raw_REST2_RL_060319.csv"))
+subject_list=read.csv(paste0(data_dir, "data/subjLists/S1200_Release_Subjects_Demographics.csv"))
+subject_list <- subject_list %>% dplyr::select(.,Subject:Age) %>% rename(., subject=Subject)
+```
+
+```{r clean data 4, include=FALSE}
+mydir="~/Documents/projects/in_progress/arun_fc_metrics_motion/data/subjData/Motion_S1200/rfMRI_REST2_RL/"
+motiondata <- read.csv(paste0(mydir,"/rfMRI_REST2_RL.csv"), header = FALSE, col.names = c("subject", "motion"))
+modul_data <- data.frame(subject_list, run1_data)
+alldata <- merge(modul_data, motiondata, by = "subject", all = TRUE)
+alldata <- alldata %>% filter(., num_communities_Pearson != 0)
+#recode age to be the median of the bins that are provided
+alldata$Age_numeric <- dplyr::recode(alldata$Age, "22-25"= 23.5, "26-30"=28, "31-35"=33, "36+"=38)
+dim(alldata)
+```
+## Avg weight and motion
+
+```{r avgweight and motion 4, echo=TRUE}
+#For each of the 6 metrics, plot the correlation between the average weight and motion
+par(mfrow=c(2,3))
+
+myPlot<-function(index) {
+  plot(alldata[,index] ~ alldata$motion, main=names(alldata[index]),pch=16,xlab="Motion",ylab=names(alldata)[index])
+       }
+lapply(6:11,FUN=myPlot)
+#calculate the correlation between average weight and motion
+formulaeAsText <- paste(names(alldata)[6:11], " ~ motion", sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+rawcorr_avgweight<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+rawcorr_avgweight_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+rawmotioncorr <- data.frame(names(alldata)[6:11], unlist(rawcorr_avgweight_sigmotion))
+rawmotioncorr
+```
+## Raw modularity and motion
+
+```{r modularity and motion, echo=TRUE}
+#For each of the 6 metrics, plot the correlation between the raw modularity metrics calculated when tuning for 7 communities and motion
+par(mfrow=c(2,3))
+myPlot<-function(index) {
+  plot(alldata[,index] ~ alldata$motion, main=names(alldata[index]),pch=19,xlab="Motion", col= "blue",ylab=names(alldata)[index])
+       }
+lapply(12:17,FUN=myPlot)
+
+#calculate the relationship between raw modularity and motion
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion", sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+rawcorr_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+rawcorr_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+rawmotionmodul_corr <- data.frame(names(alldata)[12:17], unlist(rawcorr_modul_sigmotion))
+rawmotionmodul_corr
+```
+
+## Modularity and motion, controlling for avg weight
+```{r controlling for avgweight modul 4, echo=TRUE}
+#calculate the relationship between modularity and motion controlling for avg weight
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion + avgweight_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+motionmodul_corr <- data.frame(names(alldata)[12:17], unlist(corr_modul_sigmotion))
+motionmodul_corr
+```
+
+## Modularity and motion, controlling for all covariates
+```{r controlling for avgweight and covariates modul 4, echo=TRUE}
+#calculate the relationship between modularity and motion controlling for avg weight
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion + Age_numeric + Gender + avgweight_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_covary_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_covary_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+motionmodul_corr_covary <- data.frame(names(alldata)[12:17], unlist(corr_covary_modul_sigmotion))
+motionmodul_corr_covary
+```
+
+## Is this affected by differences in number of communities detected across subjects and metrics?
+Are the number of communities correlated with motion? And then, does the same pattern of sig relationships present if controlling for number of communities detected for each subject?
+```{r number of communities found per subject 4, echo=TRUE}
+#calculate the relationship between motion and number of communities detected
+formulaeAsText <- paste(names(alldata)[18:23], " ~ motion + avgweight_",unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_numcomms<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_numcomms_sigmotion<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+numcomms_corr <- data.frame(names(alldata)[12:17], unlist(corr_numcomms_sigmotion))
+
+#calculate the relationship between modularity and motion also controlling for the number of communities found for each subject
+formulaeAsText <- paste(names(alldata)[12:17], " ~ motion + Age_numeric + Gender + avgweight_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], "+ num_communities_", unlist(strsplit(names(alldata)[12:17], "_"))[2*(1:length(names(alldata[,12:17])))], sep="")
+formulae <- lapply(formulaeAsText,FUN=formula)
+corr_covary2_modul<- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))})
+corr_covary2_modul_sigmotion <- lapply(formulae, function(eachFormula) {summary(lm(eachFormula,data=alldata))$coefficients[2,4]})
+motionmodul_corr2_covary <- data.frame(names(alldata)[12:17], unlist(corr_covary2_modul_sigmotion))
+motionmodul_corr2_covary
+```
