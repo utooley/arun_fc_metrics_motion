@@ -187,9 +187,9 @@ end
 
     
 %% Save outfiles for each run
-save(fullfile(outdir, 'modul'), 'modul')
-save(fullfile(outdir, 'numcommunities'), 'num_communities')
-save(fullfile(outdir, 'avgnumcommunities'), 'avgnumcommunities')
+save(fullfile(outdir, 'modul_run1_LR'), 'modul')
+save(fullfile(outdir, 'numcommunities_run1_LR'), 'num_communities')
+save(fullfile(outdir, 'avgnumcommunities_run1_LR'), 'avgnumcommunities')
 try
 outfile=dataset(modul.Pearson.Pearson, modul.Pearson.Spearman,modul.Pearson.Coherence, modul.Pearson.WaveletCoherence, modul.Pearson.MutualInformation, modul.Pearson.MutualInformationTime, modul.WaveletCoherence.Pearson, modul.WaveletCoherence.Spearman,modul.WaveletCoherence.Coherence, modul.WaveletCoherence.WaveletCoherence, modul.WaveletCoherence.MutualInformation, modul.WaveletCoherence.MutualInformationTime,num_communities.Pearson.Pearson, num_communities.Pearson.Spearman, num_communities.Pearson.Coherence, num_communities.Pearson.WaveletCoherence, num_communities.Pearson.MutualInformation, num_communities.Pearson.MutualInformationTime,num_communities.WaveletCoherence.Pearson, num_communities.WaveletCoherence.Spearman, num_communities.WaveletCoherence.Coherence, num_communities.WaveletCoherence.WaveletCoherence, num_communities.WaveletCoherence.MutualInformation,num_communities.WaveletCoherence.MutualInformationTime)
 
@@ -204,6 +204,7 @@ export(outfile,'File',fullfile(outdir,filename),'Delimiter',',')
 outfile2=table(avgnumcommunities.Pearson.Pearson, avgnumcommunities.Pearson.Spearman,av.numcommunities.Pearson.Coherence, avgnumcommunities.Pearson.WaveletCoherence, avgnumcommunities.Pearson.MutualInformation, avgnumcommunities.Pearson.MutualInformationTime, avgnumcommunities.WaveletCoherence.Pearson, avgnumcommunities.WaveletCoherence.Spearman, avgnumcommunities.WaveletCoherence.Coherence, avgnumcommunities.WaveletCoherence.WaveletCoherence, avgnumcommunities.WaveletCoherence.MutualInformation, avgnumcommunities.WaveletCoherence.MutualInformationTime)
 save(fullfile(outdir, 'avgnumcommunities_053119'),'outfile2')
 catch
+    
     disp('saving csvs didnt work')
 end
 end

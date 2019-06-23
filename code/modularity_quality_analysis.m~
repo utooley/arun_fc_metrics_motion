@@ -74,7 +74,7 @@ end
 outfile=dataset(avgweight.Pearson, avgweight.Spearman, avgweight.Coherence, avgweight.WaveletCoherence, avgweight.MutualInformation, avgweight.MutualInformationTime, modul.Pearson, modul.Spearman, modul.Coherence, modul.WaveletCoherence, modul.MutualInformation, modul.MutualInformationTime, num_communities.Pearson, num_communities.Spearman, num_communities.Coherence, num_communities.WaveletCoherence, num_communities.MutualInformation, num_communities.MutualInformationTime,  repmat(allgamma.Pearson.(run_name),length(subjList),1), repmat(allgamma.Spearman.(run_name),length(subjList),1), repmat(allgamma.Coherence.(run_name),length(subjList),1), repmat(allgamma.WaveletCoherence.(run_name),length(subjList), 1), repmat(allgamma.MutualInformation.(run_name), length(subjList),1), repmat(allgamma.MutualInformationTime.(run_name), length(subjList), 1))
 header={'avgweight_Pearson',	'avgweight_Spearman',	'avgweight_Coherence',	'avgweight_WaveletCoherence',	'avgweight_MutualInformation',	'avgweight_MutualInformationTime',	'modul_Pearson',	'modul_Spearman',	'modul_Coherence',	'modul_WaveletCoherence',	'modul_MutualInformation',	'modul_MutualInformationTime'	,'num_communities_Pearson'	,'num_communities_Spearman'	,'num_communities_Coherence'	,'num_communities_WaveletCoherence','num_communities_MutualInformation'	,'num_communities_MutualInformationTime'	,'allgamma_Pearson'	,'allgamma_Spearman',	'allgamma_Coherence','allgamma_WaveletCoherence','allgamma_MutualInformation','allgamma_MutualInformationTime'}
 outfile.Properties.VarNames=header
-filename=strcat('modularity_raw',run, '53119.csv') %need to figure out how to get the headers to work.
+filename=strcat('modularity_raw',run, '060319.csv') %need to figure out how to get the headers to work.
 export(outfile,'File',fullfile(outdir,filename),'Delimiter',',')
     end
 %save the all gamma variables, just in case
@@ -90,6 +90,7 @@ clear modul
 clear num_communities
 baseline_metric={'Pearson','WaveletCoherence'};
 %may need to reload allgamma .mat file here
+load(fullfile(outdir,'allgamma_modularity_raw.mat'))
 %%%%%%
 %for each of four runs
 %%%%%%
@@ -105,7 +106,7 @@ for n=1:length(subjList);
     %for each of two baseline edge distributions
     %%%%%%
     for l=1:2
-        baseline_met=baseline_metric{l}
+        baseline_met=baseline_metric{l};
         % while the average number of communities detected across participants is
         % less than 7, keep iterating
         %avgnumcommunities=0
@@ -113,7 +114,7 @@ for n=1:length(subjList);
         %while (avgnumcommunities < 6.5 | avgnumcommunities > 7.5)
         %or just pull the gamma from above, from the tuning for the edge
         %distribution being the one above
-        gamma=allgamma.(baseline_met).(run_name) %SET GAMMA FROM BEFORE
+        gamma=allgamma.(baseline_met).(run_name); %SET GAMMA FROM BEFORE
     %%%%%%
     %for each FC metric
     %%%%%%
@@ -188,7 +189,8 @@ end
 %% Save outfiles for each run
 save(fullfile(outdir, 'modul'), 'modul')
 save(fullfile(outdir, 'numcommunities'), 'num_communities')
-
+save(fullfile(outdir, 'avgnumcommunities'), 'avgnumcommunities')
+try
 outfile=dataset(modul.Pearson.Pearson, modul.Pearson.Spearman,modul.Pearson.Coherence, modul.Pearson.WaveletCoherence, modul.Pearson.MutualInformation, modul.Pearson.MutualInformationTime, modul.WaveletCoherence.Pearson, modul.WaveletCoherence.Spearman,modul.WaveletCoherence.Coherence, modul.WaveletCoherence.WaveletCoherence, modul.WaveletCoherence.MutualInformation, modul.WaveletCoherence.MutualInformationTime,num_communities.Pearson.Pearson, num_communities.Pearson.Spearman, num_communities.Pearson.Coherence, num_communities.Pearson.WaveletCoherence, num_communities.Pearson.MutualInformation, num_communities.Pearson.MutualInformationTime,num_communities.WaveletCoherence.Pearson, num_communities.WaveletCoherence.Spearman, num_communities.WaveletCoherence.Coherence, num_communities.WaveletCoherence.WaveletCoherence, num_communities.WaveletCoherence.MutualInformation,num_communities.WaveletCoherence.MutualInformationTime)
 
 %fix the header here
@@ -199,7 +201,11 @@ filename=strcat('modularity_reranked_Pearson_weights_into',metric, run, '52319.c
 export(outfile,'File',fullfile(outdir,filename),'Delimiter',',')
 
 %export average number of communities
-outfile2=table(avgnumcommunities.Pearson.Pearson, avg.numcommunities.Pearson.Spearman,avg.numcommunities.Pearson.Coherence, avg.numcommunities.Pearson.WaveletCoherence, avg.numcommunities.Pearson.MutualInformation, avgnumcommunities.Pearson.MutualInformationTime, avgnumcommunities.WaveletCoherence.Pearson, avgnumcommunities.WaveletCoherence.Spearman )
+outfile2=table(avgnumcommunities.Pearson.Pearson, avgnumcommunities.Pearson.Spearman,av.numcommunities.Pearson.Coherence, avgnumcommunities.Pearson.WaveletCoherence, avgnumcommunities.Pearson.MutualInformation, avgnumcommunities.Pearson.MutualInformationTime, avgnumcommunities.WaveletCoherence.Pearson, avgnumcommunities.WaveletCoherence.Spearman, avgnumcommunities.WaveletCoherence.Coherence, avgnumcommunities.WaveletCoherence.WaveletCoherence, avgnumcommunities.WaveletCoherence.MutualInformation, avgnumcommunities.WaveletCoherence.MutualInformationTime)
 save(fullfile(outdir, 'avgnumcommunities_053119'),'outfile2')
+catch
+    
+    disp('saving csvs didnt work')
+end
 end
 
