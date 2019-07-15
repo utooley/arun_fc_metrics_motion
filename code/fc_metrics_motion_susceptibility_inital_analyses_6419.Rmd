@@ -22,7 +22,7 @@ library(reshape2)
 # Run 1
 Skip this part after it's done once for each:
 ```{r read in txt motion files and write them out, include=FALSE}
-mydir="~/Documents/projects/in_progress/arun_fc_metrics_motion/data/subjData/Motion_S1200/rfMRI_REST2_LR/"
+mydir="~/Documents/projects/in_progress/arun_fc_metrics_motion/data/subjData/Motion_S1200/rfMRI_REST2_RL/"
 myfiles <- list.files(mydir, full.names = TRUE, pattern = "*.txt")
 mytxts <- lapply(myfiles, readLines)
 mytxts1lines <- unlist(mytxts)
@@ -31,7 +31,7 @@ x <- colsplit(mytxtsdf$filename, '_', names =  c('subject','Movement', 'RMS','me
 mytxtsdf$subject <- x$subject
 mytxtsdf <- mytxtsdf %>% dplyr::select(., c("subject", "fulltext"))
 # write it out
-write.table(mytxtsdf, file = paste0(mydir, "/rfMRI_REST2_LR.csv"), sep = ",", row.names = FALSE, col.names = FALSE, quote = FALSE)
+write.table(mytxtsdf, file = paste0(mydir, "/rfMRI_REST2_RL.csv"), sep = ",", row.names = FALSE, col.names = FALSE, quote = FALSE)
 ```
 
 ```{r load data, include=FALSE}
