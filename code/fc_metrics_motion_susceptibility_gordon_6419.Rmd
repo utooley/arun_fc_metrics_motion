@@ -18,6 +18,7 @@ library(summarytools)
 library(PerformanceAnalytics)
 library(ppcor)
 library(reshape2)
+library(ggplot2)
 ```
 # All runs averaged together
 
@@ -82,6 +83,8 @@ for (i in 1:4){
   assign(paste0("rawmotioncorr_tauestimate_run",i),rawmotionmodul_corr)
   assign(paste0("motionavgweight_corr_run",i),motionavgweight_corr)
 }
+
+
 #average them together
 averaged_rawmotioncorr_acrossruns <- numeric()
 averaged_rawmotioncorr_acrossruns$estimate <-(rawmotioncorr_tauestimate_run1$unlist.rawcorr_modul_estimate.+rawmotioncorr_tauestimate_run2$unlist.rawcorr_modul_estimate.+rawmotioncorr_tauestimate_run3$unlist.rawcorr_modul_estimate.+rawmotioncorr_tauestimate_run4$unlist.rawcorr_modul_estimate.)/4
@@ -109,8 +112,21 @@ for (i in 1:4){
     print(colnames(temp))
     pcorr_modul_estimate[l] <- as.numeric(pcor.test(temp[2], temp[3], temp[1], method="kendall")$estimate)
   }
-  assign(paste0("pcorr_modul_estimate_run",i),as.data.frame(pcorr_modul_estimate))
+  assign(paste0("pcorr_modul_estimate_run",i),as.data.frame(pcorr_modul_estimate, metrics))
+  
 }
+#Melt them together
+all <- cbind(pcorr_modul_estimate_run1, pcorr_modul_estimate_run2, pcorr_modul_estimate_run3, pcorr_modul_estimate_run4)
+all$metrics <- factor(metrics, levels=c("Pearson", "Spearman", "Coherence", "WaveletCoherence", "MutualInformation","MutualInformationTime"), labels=c("P", "S", "MIT", "C","WC", "MIF") )
+colnames(all) <- c("estimate1", "estimate2", "estimate3", "estimate4", "metrics")
+all <- melt(all, id.vars = "metrics")
+#Plot them like Arun, using his colors
+p<-ggplot(all, aes(x=metrics, y=value, color=metrics)) + 
+  geom_jitter(position=position_jitter(0), cex=2)
+p + theme_classic() + stat_summary(fun.data="mean_sdl",fun.args = list(mult = 1) ,
+                 geom="pointrange", shape=18, cex=1.3) + labs(title="333-node Gordon parcellation",x="", y = "Partial correlation of Q with motion")+ theme(plot.title = element_text(hjust = 0.5))+ theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14)) +scale_color_manual(values=c("#0072BD", "#D95319", "#EDB120", "#7E2F8E", "#77AC30", "#4DBEEE"))+ylim(-.125,0)
+
 #average them together
 averaged_pcormotion_acrossruns <-(pcorr_modul_estimate_run1$pcorr_modul_estimate+pcorr_modul_estimate_run2$pcorr_modul_estimate+pcorr_modul_estimate_run3$pcorr_modul_estimate+pcorr_modul_estimate_run4$pcorr_modul_estimate)/4
 averaged_pcormotion_acrossruns <- as.data.frame(averaged_pcormotion_acrossruns)
@@ -135,6 +151,7 @@ for (i in 1:4){
   }
   assign(paste0("pcorr_modul_estimate_run",i),as.data.frame(pcorr_modul_estimate))
 }
+
 #average them together
 averaged_pcormotion_allcovariates_acrossruns <-(pcorr_modul_estimate_run1$pcorr_modul_estimate+pcorr_modul_estimate_run2$pcorr_modul_estimate+pcorr_modul_estimate_run3$pcorr_modul_estimate+pcorr_modul_estimate_run4$pcorr_modul_estimate)/4
 averaged_pcormotion_allcovariates_acrossruns <- as.data.frame(averaged_pcormotion_allcovariates_acrossruns)
