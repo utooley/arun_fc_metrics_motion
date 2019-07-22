@@ -19,6 +19,7 @@ library(PerformanceAnalytics)
 library(ppcor)
 library(reshape2)
 library(R.matlab)
+library(ggplot2)
 ```
 
 # Schaefer Parcellation
@@ -289,11 +290,40 @@ rerank_alldata4 <- na.omit(rerank_alldata4)
 #Compare modularity q on Pearson reranked into wavelet coherence to wavelet coherence itself
 for (i in 1:4){
   assign("dataorig",get(paste0("alldata",i)))
-  print(summary(dataorig$modul_WaveletCoherence))
+  averagemodulorig <- summary(dataorig$modul_WaveletCoherence)[4]
   assign("data",get(paste0("rerank_alldata",i)))
-  #print(summary(data$WaveletCoherence.Pearson)) #look just at which ones are higher, the original or the re-ranked?
+  averagemodulrerank <- summary(data$WaveletCoherence.Pearson)[4] #look just at which ones are higher, the original or the re-ranked?
   #cycle through Pearson and Wavelet Coherence
+  assign(paste0("averagemodularity",i),averagemodulorig)
+  assign(paste0("averagererankedmodularity",i),averagemodulrerank)
 }
+#run once
+wavecoh <- cbind(averagemodularity1,averagemodularity2, averagemodularity3, averagemodularity4)
+rownames(wavecoh) <- "wavecoh"
+wavecohrerank <- cbind(averagererankedmodularity1,averagererankedmodularity2, averagererankedmodularity3, averagererankedmodularity4)
+rownames(wavecohrerank) <- "wavecohrerank"
+#the second time
+pearson <- cbind(averagemodularity1,averagemodularity2, averagemodularity3, averagemodularity4)
+rownames(pearson) <- "pearson"
+pearsonrerank <- cbind(averagererankedmodularity1,averagererankedmodularity2, averagererankedmodularity3, averagererankedmodularity4)
+rownames(pearsonrerank) <- "pearsonrerank"
+all <- rbind(pearson, pearsonrerank,wavecoh,wavecohrerank)
+all <- melt(all) %>% dplyr::select(. ,-Var2) %>% arrange(., Var1)
+all$baseline <- c(rep("Pearson", 8), rep("WaveletCoherence",8))
+all$ranking <- c(rep("Pearson", 4), rep("WaveletCoherence",8),rep("Pearson", 4))
+
+#Plot them like Arun, using his colors, as a barplot
+p<-ggplot(all, aes(x=baseline, y=value, fill=ranking)) + 
+  geom_bar(width = 0.4, position = position_dodge(width=0.5), stat="summary", fun.y=mean)+ 
+  theme_classic() +scale_fill_manual(values=c("#0072BD","#77AC30")) + labs(title="333-node Gordon parcellation",x="Baseline Edge weight distribution", y = "Modularity quality index Q")+ theme(plot.title = element_text(hjust = 0.5))+ theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))
+p
+#Plot them like Arun, using his colors, as a beeswarm plot
+p<-ggplot(all, aes(x=baseline, y=value, color=ranking)) + 
+   geom_jitter(position=position_jitter(0.1), cex=1)
+p + theme_classic() + stat_summary(fun.data="mean_sdl",fun.args = list(mult = 1) ,
+                 geom="pointrange", shape=18, cex=1)+ labs(title="333-node Gordon parcellation",x="", y = "Correlation of Q with motion")+ theme(plot.title = element_text(hjust = 0.5))+ theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14)) +scale_color_manual(values=c("#0072BD","#77AC30"))
 ```
 
 ## See how much Q is correlated with motion for the reranked vs. original
@@ -313,4 +343,15 @@ for (i in 1:4){
 reranked_motion_corr_across_runs$estimate <-(rerankedmotion_corr_run1$unlist.rerankedcorr_modul_estimate.+rerankedmotion_corr_run2$unlist.rerankedcorr_modul_estimate. +rerankedmotion_corr_run3$unlist.rerankedcorr_modul_estimate.+rerankedmotion_corr_run4$unlist.rerankedcorr_modul_estimate.)/4
 reranked_motion_corr_across_runs$names <- names(rerank_alldata1)[7:8]
 barplot(reranked_motion_corr_across_runs$estimate, names.arg =reranked_motion_corr_across_runs$names, ylim=c(0, -0.08), col="magenta", cex.axis=1.5, cex.names=1, main="Correlation between Q and motion for reranked matrices, averaged across runs")
+
+all <- rbind(rerankedmotion_corr_run1$unlist.rerankedcorr_modul_estimate.,rerankedmotion_corr_run2$unlist.rerankedcorr_modul_estimate. ,rerankedmotion_corr_run3$unlist.rerankedcorr_modul_estimate.,rerankedmotion_corr_run4$unlist.rerankedcorr_modul_estimate.)
+colnames(all) <- c("Pearson into Wavelet Coherence", "Wavelet Coherence into Pearson")
+all <- melt(all)
+
+#Plot them like Arun, using his colors
+p<-ggplot(all, aes(x=Var2, y=value, color=Var2)) + 
+  geom_jitter(position=position_jitter(0), cex=2)
+p + theme_classic() + stat_summary(fun.data="mean_sdl",fun.args = list(mult = 1) ,
+                 geom="pointrange", shape=18, cex=1.3) + labs(title="333-node Gordon parcellation",x="", y = "Correlation of Q with motion")+ theme(plot.title = element_text(hjust = 0.5))+ theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14)) +scale_color_manual(values=c("#0072BD","#77AC30"))
 ```
