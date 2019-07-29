@@ -237,6 +237,7 @@ for i=1:4
 %%%%%%
 for j=1:6
     metric=fc_metrics{j}
+    modul.(metric)=zeros(length(subjList),1);
 %%%%%%
 %for each subject
 %%%%%%
@@ -255,14 +256,14 @@ for j=1:6
         %[M Q]=community_louvain(AdjMat, [], double(parcels.Community), 'negative_asym');
         [M Q]=modul_only(AdjMat, [], double(parcels.Community), 'negative_asym');
         modul.(metric)(n,1)=Q;
-        M %check that it's still the same
+        Q %check that it's still the same
         num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
     else
         %use the default modularity
         %[M Q]=community_louvain(AdjMat, [], double(parcels.Community));
         [M Q]=modul_only(AdjMat, [], double(parcels.Community));
         modul.(metric)(n,1)=Q;
-        M %check that it's still the same.
+        Q %check that it's still the same.
         num_communities.(metric)(n,1)=length(unique(M));
     end
         catch
