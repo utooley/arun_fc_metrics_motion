@@ -55,7 +55,7 @@ end
 %%%%%%%%%%%%%%
 %mounted cluster locally
 data_dir='~/Desktop/cluster/jag/bassett-lab/hcp_Max/Data/FunctionalConnectivityMatrices'
-outdir='~/Desktop/cluster/data/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/output/data/Gordon_ICA_FIX/nomotion_edges/'
+outdir='/Users/utooley/Desktop/cluster/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/output/data/Gordon_ICA_FIX/nomotion_edges'
 edges_mat='~/Desktop/cluster/jag/bassett-lab/hcp_Max/Data/noMotion_edges'
 
 
