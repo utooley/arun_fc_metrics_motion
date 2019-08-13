@@ -50,10 +50,14 @@ thresholded=unique(sort(matrix(:),'ascend'))
 save(fullfile(outdir, strcat('/noMotion_edges/noMotion_edges_','yeo_100', run,'FIX_matrices')), 'binary_nomotion_edges')
 end
 
+%%%%%%%%%%%%%%%%
 %% Run modularity analysis with only these edges for each metric
-%mounted locally
+%%%%%%%%%%%%%%
+%mounted cluster locally
 data_dir='~/Desktop/cluster/jag/bassett-lab/hcp_Max/Data/FunctionalConnectivityMatrices'
-outdir='/data/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/output/data/Gordon_ICA_FIX/nomotion_edges/'
+outdir='~/Desktop/cluster/data/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/output/data/Gordon_ICA_FIX/nomotion_edges/'
+edges_mat='~/Desktop/cluster/jag/bassett-lab/hcp_Max/Data/noMotion_edges'
+
 
 %locally on personal computer
 edges_mat='~/Documents/projects/in_progress/arun_fc_metrics_motion/output/data/'
@@ -63,15 +67,15 @@ edges_mat='~/Documents/projects/in_progress/arun_fc_metrics_motion/output/data/'
 for i=1:4
     run=rest_runs{i};
     run_name=strcat('run',run, 'l');
-    modul.(metric)=zeros(length(subjList),1);
-    avgweight.(metric)=zeros(length(subjList),1);
-    load(fullfile(edges_mat, strcat('/noMotion_edges/noMotion_edges_','gordon', run,'FIX_matrices'))) %load the mask of low-motion edges for this run)
+    load(fullfile(edges_mat, strcat('noMotion_edges_','gordon', run,'FIX_matrices'))) %load the mask of low-motion edges for this run)
 %%%%%%
 %for each FC metric
 %%%%%%
-for j=1:6 %only Pearson and Spearman
+for j=1:6 
     metric=fc_metrics{j}
- num_communities.(metric)=zeros(length(subjList),1); %set up num communities
+    modul.(metric)=zeros(length(subjList),1);
+    avgweight.(metric)=zeros(length(subjList),1);
+    num_communities.(metric)=zeros(length(subjList),1); %set up num communities
  
 % while the average number of communities detected across participants is
 % less than 7, keep iterating
@@ -94,12 +98,12 @@ if (j==4 | j == 5) %Pearson or spearman, use the negative weighting
     %Community Louvain outputs a measure of modularity and can take signed
     %networks as input. Weighted the negative connections asymmetrically, Q* as
     %recommended by Rubinov & Sporns
-    [M Q]=community_louvain(AdjMat, gamma, [], 'negative_asym');
+    [M Q]=community_louvain(AdjMat, [], [], 'negative_asym');
     modul.(metric)(n,1)=Q;
     num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
  else
     %use the default modularity
-    [M Q]=community_louvain(AdjMat, gamma);
+    [M Q]=community_louvain(AdjMat, []);
     modul.(metric)(n,1)=Q;
     num_communities.(metric)(n,1)=length(unique(M));
 end
@@ -110,7 +114,7 @@ end
 avgnumcommunities=mean(num_communities.(metric)(num_communities.(metric)~=0))
 %gamma=gamma+0.01
     %end
-    allgamma.(metric).(run_name)=gamma
+    %allgamma.(metric).(run_name)=gamma
 end
 %% Save outfiles for each run
 % outfile=dataset(avgweight.Pearson, avgweight.Spearman, avgweight.Coherence, avgweight.WaveletCoherence, avgweight.MutualInformation, avgweight.MutualInformationTime, modul.Pearson, modul.Spearman, modul.Coherence, modul.WaveletCoherence, modul.MutualInformation, modul.MutualInformationTime, num_communities.Pearson, num_communities.Spearman, num_communities.Coherence, num_communities.WaveletCoherence, num_communities.MutualInformation, num_communities.MutualInformationTime,  repmat(allgamma.Pearson.(run_name),length(subjList),1), repmat(allgamma.Spearman.(run_name),length(subjList),1), repmat(allgamma.Coherence.(run_name),length(subjList),1), repmat(allgamma.WaveletCoherence.(run_name),length(subjList), 1), repmat(allgamma.MutualInformation.(run_name), length(subjList),1), repmat(allgamma.MutualInformationTime.(run_name), length(subjList), 1))
@@ -122,12 +126,12 @@ end
 save(fullfile(outdir, strcat('modul_nomotionedges_run',int2str(i))), 'modul')
 save(fullfile(outdir, strcat('numcommunities_nomotionedges_run',int2str(i))), 'num_communities')
 save(fullfile(outdir, strcat('avgnumcommunities_nomotionedges_run',int2str(i))), 'avgnumcommunities')
-save(fullfile(outdir, strcat('gamma_nomotionedges_run',int2str(i))), 'allgamma')
+%save(fullfile(outdir, strcat('gamma_nomotionedges_run',int2str(i))), 'allgamma')
     
 end
-%save the all gamma variables, just in case
-filename=fullfile(outdir,'allgamma_modularity_nomotionedges_081319.mat')
-save(filename, 'allgamma')
+% %save the all gamma variables, just in case
+% filename=fullfile(outdir,'allgamma_modularity_nomotionedges_081319.mat')
+% save(filename, 'allgamma')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%
