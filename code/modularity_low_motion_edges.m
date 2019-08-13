@@ -28,28 +28,35 @@ fc_metrics={'Coherence', 'MutualInformation', 'MutualInformationTime','Pearson',
 %find the edges across all 6 metrics that are the least overall affected by
 %motion
 for i=1:4
-    matrix=zeros(333,333);
+    matrix=zeros(100,100);
     run=rest_runs{i};
     run_name=strcat('run',run, 'l');
 for j=1:6 %only Pearson and Spearman
     metric=fc_metrics{j}
     %read in the average matrix, take the absolute value of correlation,
     %and rank it
-    file=fullfile(data_dir,strcat('QCFC_correlationMatrix_',metric,'_gordon',run,'FIX_matrices.mat'));
+    file=fullfile(data_dir,strcat('QCFC_correlationMatrix_',metric,'_yeo_100',run,'FIX_matrices.mat'));
     load(file);
     QCFC_correlationMatrix_abs=abs(QCFC_correlationMatrix);
     [~, ranks]=ismember(QCFC_correlationMatrix_abs,unique(sort(QCFC_correlationMatrix_abs,'descend')));
-    %% FIX THIS, THE RANKING ISN"T WORKING. MAYBE NOW?
     matrix=matrix+ranks; %add each ranked matrix to the other.
 end
 %threshold matrix to the 20% of edges with the smallest values
 thresholded=unique(sort(matrix(:),'ascend'))       
-[~, ranks]=ismember(matrix,thresholded(1:ceil(length(thresholded)*0.2)));
+[binary_nomotion_edges, ranks]=ismember(matrix,thresholded(7:ceil(length(thresholded)*0.2))); %the diagonal is 6, start at 7
 %I think this is working
    
 %save out this matrix as a mask for each run
-save(fullfile(outdir, strcat('noMotion_edges_','gordon', run,'FIX_matrices.mat'), 'ranks')
+save(fullfile(outdir, strcat('/noMotion_edges/noMotion_edges_','yeo_100', run,'FIX_matrices')), 'binary_nomotion_edges')
 end
+
+%% Run modularity analysis with only these edges for each metric
+%mounted locally
+data_dir='~/Desktop/cluster/jag/bassett-lab/hcp_Max/Data/FunctionalConnectivityMatrices'
+outdir='/data/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/output/data/Gordon_ICA_FIX/nomotion_edges/'
+
+%locally on personal computer
+edges_mat='~/Documents/projects/in_progress/arun_fc_metrics_motion/output/data/'
 %%%%%%
 %for each of four runs
 %%%%%%
@@ -58,18 +65,19 @@ for i=1:4
     run_name=strcat('run',run, 'l');
     modul.(metric)=zeros(length(subjList),1);
     avgweight.(metric)=zeros(length(subjList),1);
+    load(fullfile(edges_mat, strcat('/noMotion_edges/noMotion_edges_','gordon', run,'FIX_matrices'))) %load the mask of low-motion edges for this run)
 %%%%%%
 %for each FC metric
 %%%%%%
-for j=4:5 %only Pearson and Spearman
+for j=1:6 %only Pearson and Spearman
     metric=fc_metrics{j}
  num_communities.(metric)=zeros(length(subjList),1); %set up num communities
  
 % while the average number of communities detected across participants is
 % less than 7, keep iterating
-avgnumcommunities=0
-gamma=1;
-    while (avgnumcommunities < 6 | avgnumcommunities > 8)
+% avgnumcommunities=0
+% gamma=1;
+%     while (avgnumcommunities < 6 | avgnumcommunities > 8)
 %%%%%%
 %for each subject
 %%%%%%
@@ -78,30 +86,30 @@ for n=1:length(subjList);
     try
     file=fullfile(data_dir,strcat('gordon_',num2str(sub),run,'FIX_matrices_', metric,'.mat'));
     load(file);
-    AdjMat=threshold_absolute(AdjMat,0);
+    AdjMat=AdjMat.*binary_nomotion_edges; %mask AdjMat with the low-motion edges only
     avgweight.(metric)(n,1)=mean(AdjMat(AdjMat~=0)); %get average weight for each metric
 %% calculate the modularity quality index raw on each metric
 %probably won't use this, but worth having
-% if (j==4 | j == 5) %Pearson or spearman, use the negative weighting  
-%     %Community Louvain outputs a measure of modularity and can take signed
-%     %networks as input. Weighted the negative connections asymmetrically, Q* as
-%     %recommended by Rubinov & Sporns
-%     [M Q]=community_louvain(AdjMat, gamma, [], 'negative_asym');
-%     modul.(metric)(n,1)=Q;
-%     num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
-% else
+if (j==4 | j == 5) %Pearson or spearman, use the negative weighting  
+    %Community Louvain outputs a measure of modularity and can take signed
+    %networks as input. Weighted the negative connections asymmetrically, Q* as
+    %recommended by Rubinov & Sporns
+    [M Q]=community_louvain(AdjMat, gamma, [], 'negative_asym');
+    modul.(metric)(n,1)=Q;
+    num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
+ else
     %use the default modularity
     [M Q]=community_louvain(AdjMat, gamma);
     modul.(metric)(n,1)=Q;
     num_communities.(metric)(n,1)=length(unique(M));
-% end
+end
     catch
     disp('This subject not found')
     end
 end
 avgnumcommunities=mean(num_communities.(metric)(num_communities.(metric)~=0))
-gamma=gamma+0.01
-    end
+%gamma=gamma+0.01
+    %end
     allgamma.(metric).(run_name)=gamma
 end
 %% Save outfiles for each run
@@ -111,15 +119,14 @@ end
 % filename=strcat('modularity_raw',run, '071619.csv') %need to figure out how to get the headers to work.
 % export(outfile,'File',fullfile(outdir,filename),'Delimiter',',')
 
- 
-save(fullfile(outdir, strcat('modul_positiveonly_run',int2str(i))), 'modul')
-save(fullfile(outdir, strcat('numcommunities_positiveonly_run',int2str(i))), 'num_communities')
-save(fullfile(outdir, strcat('avgnumcommunities_positiveonly_run',int2str(i))), 'avgnumcommunities')
-save(fullfile(outdir, strcat('gamma_positiveonly_run',int2str(i))), 'allgamma')
+save(fullfile(outdir, strcat('modul_nomotionedges_run',int2str(i))), 'modul')
+save(fullfile(outdir, strcat('numcommunities_nomotionedges_run',int2str(i))), 'num_communities')
+save(fullfile(outdir, strcat('avgnumcommunities_nomotionedges_run',int2str(i))), 'avgnumcommunities')
+save(fullfile(outdir, strcat('gamma_nomotionedges_run',int2str(i))), 'allgamma')
     
 end
 %save the all gamma variables, just in case
-filename=fullfile(outdir,'allgamma_modularity_raw_071619.mat')
+filename=fullfile(outdir,'allgamma_modularity_nomotionedges_081319.mat')
 save(filename, 'allgamma')
 
 
