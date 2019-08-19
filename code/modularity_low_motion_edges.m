@@ -122,6 +122,7 @@ end
 save(fullfile(outdir, strcat('modul_nomotionedges_run',int2str(i))), 'modul')
 save(fullfile(outdir, strcat('numcommunities_nomotionedges_run',int2str(i))), 'num_communities')
 save(fullfile(outdir, strcat('avgnumcommunities_nomotionedges_run',int2str(i))), 'avgnumcommunities')
+save(fullfile(outdir, strcat('avgweight_run',int2str(i))), 'avgweight')
 save(fullfile(outdir, strcat('gamma_nomotionedges_run',int2str(i))), 'allgamma')
     
 end
