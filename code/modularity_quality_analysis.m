@@ -9,7 +9,7 @@ outdir='~/Documents/projects/in_progress/arun_fc_metrics_motion/output/data/'
 %working directly on the cluster
 subj_dir='/data/jag/bassett-lab/hcp_Max/Data/Covariates'
 data_dir='/data/jag/bassett-lab/hcp_Max/Data/FunctionalConnectivityMatrices'
-outdir='/data/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/output/data/Gordon_ICA_FIX'
+outdir='/data/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/output/data/Gordon_ICA_FIX/with_nulls'
 %subject list
 subjList=readtable(fullfile(subj_dir, 'S1200_Release_Subjects_Demographics.csv'));
 subjList=subjList.Subject;
@@ -24,13 +24,13 @@ fc_metrics={'Coherence', 'MutualInformation', 'MutualInformationTime','Pearson',
 for i=1:4
     run=rest_runs{i};
     run_name=strcat('run',run, 'l');
-    modul.(metric)=zeros(length(subjList),1);
-    avgweight.(metric)=zeros(length(subjList),1);
 %%%%%%
 %for each FC metric
 %%%%%%
-for j=4:5 %only Pearson and Spearman
+for j=1:6
     metric=fc_metrics{j}
+    modul.(metric)=zeros(length(subjList),1);
+    avgweight.(metric)=zeros(length(subjList),1);
  num_communities.(metric)=zeros(length(subjList),1); %set up num communities
  
 % while the average number of communities detected across participants is
@@ -46,29 +46,58 @@ for n=1:length(subjList);
     try
     file=fullfile(data_dir,strcat('gordon_',num2str(sub),run,'FIX_matrices_', metric,'.mat'));
     load(file);
-    AdjMat=threshold_absolute(AdjMat,0);
+    %AdjMat=threshold_absolute(AdjMat,0);
     avgweight.(metric)(n,1)=mean(AdjMat(AdjMat~=0)); %get average weight for each metric
 %% calculate the modularity quality index raw on each metric
 %probably won't use this, but worth having
-% if (j==4 | j == 5) %Pearson or spearman, use the negative weighting  
-%     %Community Louvain outputs a measure of modularity and can take signed
-%     %networks as input. Weighted the negative connections asymmetrically, Q* as
-%     %recommended by Rubinov & Sporns
-%     [M Q]=community_louvain(AdjMat, gamma, [], 'negative_asym');
-%     modul.(metric)(n,1)=Q;
-%     num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
-% else
+if (j==4 | j == 5) %Pearson or spearman, use the negative weighting  
+    %Community Louvain outputs a measure of modularity and can take signed
+    %networks as input. Weighted the negative connections asymmetrically, Q* as
+    %recommended by Rubinov & Sporns
+    [M Q]=community_louvain(AdjMat, gamma, [], 'negative_asym');
+    modul.(metric)(n,1)=Q;
+    num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
+else
     %use the default modularity
     [M Q]=community_louvain(AdjMat, gamma);
     modul.(metric)(n,1)=Q;
     num_communities.(metric)(n,1)=length(unique(M));
-% end
+end
     catch
     disp('This subject not found')
     end
 end
 avgnumcommunities=mean(num_communities.(metric)(num_communities.(metric)~=0))
 gamma=gamma+0.01
+    end
+    null_modul.(metric)=zeros(length(subjList),1);
+    %% make a null model for this metric for each subject with this gamma, and save modularity out of it
+    for n=1:length(subjList);
+    sub=subjList(n);
+    file=fullfile(data_dir,strcat('gordon_',num2str(sub),run,'FIX_matrices_', metric,'.mat'));
+    try
+    load(file);
+    %rewire null model
+    for c=1:100
+    null=null_model_und_sign(AdjMat, 5, 0.3);
+    %run modularity on it, save Q
+    if (j==4 | j == 5) %Pearson or spearman, use the negative weighting  
+    %Community Louvain outputs a measure of modularity and can take signed
+    %networks as input. Weighted the negative connections asymmetrically, Q* as
+    %recommended by Rubinov & Sporns
+    [M Q]=community_louvain(null, gamma, [], 'negative_asym');
+    modul_temp(c)=Q;
+else
+    %use the default modularity
+    [M Q]=community_louvain(null, gamma);
+    modul_temp(c)=Q;
+    end
+    end
+    %for this subject, average across 100 runs of the null
+    null_modul.(metric)(n,1)=mean(modul_temp(:));
+    catch
+    disp('This subject not found')
+    end
     end
     allgamma.(metric).(run_name)=gamma
 end
@@ -79,15 +108,15 @@ end
 % filename=strcat('modularity_raw',run, '071619.csv') %need to figure out how to get the headers to work.
 % export(outfile,'File',fullfile(outdir,filename),'Delimiter',',')
 
- 
-save(fullfile(outdir, strcat('modul_positiveonly_run',int2str(i))), 'modul')
-save(fullfile(outdir, strcat('numcommunities_positiveonly_run',int2str(i))), 'num_communities')
-save(fullfile(outdir, strcat('avgnumcommunities_positiveonly_run',int2str(i))), 'avgnumcommunities')
-save(fullfile(outdir, strcat('gamma_positiveonly_run',int2str(i))), 'allgamma')
+save(fullfile(outdir, strcat('nullmodul_withnulls_run',int2str(i))), 'null_modul') 
+save(fullfile(outdir, strcat('modul_withnulls_run',int2str(i))), 'modul')
+save(fullfile(outdir, strcat('numcommunities_withnulls_run',int2str(i))), 'num_communities')
+save(fullfile(outdir, strcat('avgnumcommunities_withnulls_run',int2str(i))), 'avgnumcommunities')
+save(fullfile(outdir, strcat('gamma_withnulls_run',int2str(i))), 'allgamma')
     
 end
 %save the all gamma variables, just in case
-filename=fullfile(outdir,'allgamma_modularity_raw_071619.mat')
+filename=fullfile(outdir,'allgamma_modularity_withnulls_091419.mat')
 save(filename, 'allgamma')
 
 
