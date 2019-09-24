@@ -94,19 +94,19 @@ for n=1:length(subjList);
     avgweight.(metric)(n,1)=mean(AdjMat(AdjMat~=0)); %get average weight for each metric
 %% calculate the modularity quality index raw on each metric
 %probably won't use this, but worth having
-% if (j==4 | j == 5) %Pearson or spearman, use the negative weighting  
-%     %Community Louvain outputs a measure of modularity and can take signed
-%     %networks as input. Weighted the negative connections asymmetrically, Q* as
-%     %recommended by Rubinov & Sporns
-%     [M Q]=community_louvain(AdjMat, [], [], 'negative_asym');
-%     modul.(metric)(n,1)=Q;
-%     num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
-%  else
-%     %use the default modularity
-%     [M Q]=community_louvain(AdjMat, []);
-%     modul.(metric)(n,1)=Q;
-%     num_communities.(metric)(n,1)=length(unique(M));
-% end
+if (j==4 | j == 5) %Pearson or spearman, use the negative weighting  
+    %Community Louvain outputs a measure of modularity and can take signed
+    %networks as input. Weighted the negative connections asymmetrically, Q* as
+    %recommended by Rubinov & Sporns
+    [M Q]=community_louvain(AdjMat, [], [], 'negative_asym');
+    modul.(metric)(n,1)=Q;
+    num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
+ else
+    %use the default modularity
+    [M Q]=community_louvain(AdjMat, []);
+    modul.(metric)(n,1)=Q;
+    num_communities.(metric)(n,1)=length(unique(M));
+end
     catch
     disp('This subject not found')
     end
@@ -123,16 +123,16 @@ end
 % filename=strcat('modularity_raw',run, '071619.csv') %need to figure out how to get the headers to work.
 % export(outfile,'File',fullfile(outdir,filename),'Delimiter',',')
 
-% save(fullfile(outdir, strcat('modul_nomotionedges_absvalue_run',int2str(i))), 'modul')
-% save(fullfile(outdir, strcat('numcommunities_nomotionedges_absvalue_run',int2str(i))), 'num_communities')
-% save(fullfile(outdir, strcat('avgnumcommunities_nomotionedges_absvalue_run',int2str(i))), 'avgnumcommunities')
-save(fullfile(outdir, strcat('avgweight_nomotionedges_absvalue_run',int2str(i))), 'avgweight')
-% save(fullfile(outdir, strcat('gamma_nomotionedges_run',int2str(i))), 'allgamma')
+save(fullfile(outdir, strcat('modul_nomotionedges_run',int2str(i))), 'modul')
+save(fullfile(outdir, strcat('numcommunities_nomotionedges_run',int2str(i))), 'num_communities')
+save(fullfile(outdir, strcat('avgnumcommunities_nomotionedges_run',int2str(i))), 'avgnumcommunities')
+save(fullfile(outdir, strcat('avgweight_nomotionedges_run',int2str(i))), 'avgweight')
+save(fullfile(outdir, strcat('gamma_nomotionedges_run',int2str(i))), 'allgamma')
   
 end
-% %save the all gamma variables, just in case
-% filename=fullfile(outdir,'allgamma_modularity_nomotionedges_081319.mat')
-% save(filename, 'allgamma')
+%save the all gamma variables, just in case
+filename=fullfile(outdir,'allgamma_modularity_nomotionedges_081319.mat')
+save(filename, 'allgamma')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%

@@ -78,7 +78,7 @@ gamma=gamma+0.01
     try
     load(file);
     %rewire null model
-    for c=1:100
+    %for c=1:100
     null=null_model_und_sign(AdjMat, 5, 0.3);
     %run modularity on it, save Q
     if (j==4 | j == 5) %Pearson or spearman, use the negative weighting  
@@ -86,15 +86,17 @@ gamma=gamma+0.01
     %networks as input. Weighted the negative connections asymmetrically, Q* as
     %recommended by Rubinov & Sporns
     [M Q]=community_louvain(null, gamma, [], 'negative_asym');
-    modul_temp(c)=Q;
+    %modul_temp(c)=Q;
+    null_modul.(metric)(n,1)=Q
 else
     %use the default modularity
     [M Q]=community_louvain(null, gamma);
-    modul_temp(c)=Q;
+    %modul_temp(c)=Q;
+    null_modul.(metric)(n,1)=Q;
     end
-    end
+    %end
     %for this subject, average across 100 runs of the null
-    null_modul.(metric)(n,1)=mean(modul_temp(:));
+    %null_modul.(metric)(n,1)=mean(modul_temp(:));
     catch
     disp('This subject not found')
     end
