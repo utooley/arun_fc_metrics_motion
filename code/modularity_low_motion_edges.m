@@ -59,7 +59,7 @@ outdir='/Users/utooley/Desktop/cluster/jux/mackey_group/Ursula/projects/in_progr
 edges_mat='~/Desktop/cluster/jag/bassett-lab/hcp_Max/Data/noMotion_edges'
 
 %locally on personal computer
-edges_mat='~/Documents/projects/in_progress/arun_fc_metrics_motion/output/data/'
+%edges_mat='~/Documents/projects/in_progress/arun_fc_metrics_motion/output/data/'
 %%%%%%
 %for each of four runs
 %%%%%%
@@ -127,12 +127,12 @@ save(fullfile(outdir, strcat('modul_nomotionedges_run',int2str(i))), 'modul')
 save(fullfile(outdir, strcat('numcommunities_nomotionedges_run',int2str(i))), 'num_communities')
 save(fullfile(outdir, strcat('avgnumcommunities_nomotionedges_run',int2str(i))), 'avgnumcommunities')
 save(fullfile(outdir, strcat('avgweight_nomotionedges_run',int2str(i))), 'avgweight')
-save(fullfile(outdir, strcat('gamma_nomotionedges_run',int2str(i))), 'allgamma')
+%save(fullfile(outdir, strcat('gamma_nomotionedges_run',int2str(i))), 'allgamma')
   
 end
 %save the all gamma variables, just in case
-filename=fullfile(outdir,'allgamma_modularity_nomotionedges_081319.mat')
-save(filename, 'allgamma')
+%filename=fullfile(outdir,'allgamma_modularity_nomotionedges_081319.mat')
+%save(filename, 'allgamma')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%
