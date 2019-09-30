@@ -146,10 +146,12 @@ all$baseline <- c(rep("Pearson", 8), rep("WaveletCoherence",8))
 all$ranking <- c(rep("Pearson", 4), rep("WaveletCoherence",8),rep("Pearson", 4))
 
 #Plot them like Arun, using his colors
-p<-ggplot(all, aes(x=baseline, y=value, fill=ranking)) + 
-  geom_bar(width = 0.4, position = position_dodge(width=0.5), stat="summary", fun.y=mean)+ 
-  theme_classic() +scale_fill_manual(values=c("#0072BD","#77AC30")) + labs(title="100-node Yeo parcellation",x="Baseline Edge weight distribution", y = "Modularity quality index Q")+ theme(plot.title = element_text(hjust = 0.5))+ theme(axis.text=element_text(size=14),
+p<-ggplot(all, aes(x=baseline, y=value, color=ranking)) + 
+  geom_jitter(position=position_jitter(0.1), cex=1)+ stat_summary(fun.data="mean_sdl",fun.args = list(mult = 1) ,
+                 geom="pointrange", shape=95, cex=1.3) +
+  theme_classic() +scale_color_manual(values=c("#0072BD","#77AC30")) + labs(title="100-node Yeo parcellation",x="Baseline Edge weight distribution", y = "Modularity quality index Q")+ theme(plot.title = element_text(hjust = 0.5))+ theme(axis.text=element_text(size=14),
         axis.title=element_text(size=14))
+p
 ```
 
 ## See how much Q is correlated with motion for the reranked vs. original
@@ -318,12 +320,15 @@ p<-ggplot(all, aes(x=baseline, y=value, fill=ranking)) +
   theme_classic() +scale_fill_manual(values=c("#0072BD","#77AC30")) + labs(title="333-node Gordon parcellation",x="Baseline Edge weight distribution", y = "Modularity quality index Q")+ theme(plot.title = element_text(hjust = 0.5))+ theme(axis.text=element_text(size=14),
         axis.title=element_text(size=14))
 p
+
 #Plot them like Arun, using his colors, as a beeswarm plot
 p<-ggplot(all, aes(x=baseline, y=value, color=ranking)) + 
-   geom_jitter(position=position_jitter(0.1), cex=1)
-p + theme_classic() + stat_summary(fun.data="mean_sdl",fun.args = list(mult = 1) ,
-                 geom="pointrange", shape=18, cex=1)+ labs(title="333-node Gordon parcellation",x="", y = "Correlation of Q with motion")+ theme(plot.title = element_text(hjust = 0.5))+ theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=14)) +scale_color_manual(values=c("#0072BD","#77AC30"))
+  geom_jitter(position=position_jitter(0.1), cex=1)+ stat_summary(fun.data="mean_sdl",fun.args = list(mult = 1) ,
+                 geom="pointrange", shape=95, cex=1.3) +
+  theme_classic() +scale_color_manual(values=c("#0072BD","#77AC30")) + labs(title="333-node Gordon parcellation",x="Baseline Edge weight distribution", y = "Modularity quality index Q")+ theme(plot.title = element_text(hjust = 0.5))+ theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))
+p
+```
 ```
 
 ## See how much Q is correlated with motion for the reranked vs. original

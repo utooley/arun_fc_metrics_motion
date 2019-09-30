@@ -5,11 +5,12 @@
 %mounted locally on work computer
 subj_dir='~/Desktop/cluster/jag/bassett-lab/hcp_Max/Data/Covariates'
 data_dir='~/Desktop/cluster/jag/bassett-lab/hcp_Max/Data/FunctionalConnectivityMatrices'
-outdir='~/Documents/projects/in_progress/arun_fc_metrics_motion/output/data/'
+outdir='/Users/utooley/Desktop/cluster/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/output/data/Schaefer_100_ICA_FIX/abs_value_PearsonSpearman'
 %working directly on the cluster
 subj_dir='/data/jag/bassett-lab/hcp_Max/Data/Covariates'
 data_dir='/data/jag/bassett-lab/hcp_Max/Data/FunctionalConnectivityMatrices'
-outdir='/data/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/output/data/Gordon_ICA_FIX/with_nulls'
+outdir='/data/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/output/data/Schaefer_100_ICA_FIX/abs_value_PearsonSpearman '
+outdir='~/Documents/projects/in_progress/arun_fc_metrics_motion/output/data/Schaefer_100_ICA_FIX/abs_value_PearsonSpearman'
 %subject list
 subjList=readtable(fullfile(subj_dir, 'S1200_Release_Subjects_Demographics.csv'));
 subjList=subjList.Subject;
@@ -58,6 +59,10 @@ if (j==4 | j == 5) %Pearson or spearman, use the negative weighting
      [M Q]=community_louvain(AdjMat, gamma, [], 'negative_asym');
      modul.(metric)(n,1)=Q;
      num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
+     else
+    [M Q]=community_louvain(AdjMat, gamma, [], 'negative_asym');
+    modul.(metric)(n,1)=Q;
+    num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
 else
     %use the default modularity
     [M Q]=community_louvain(AdjMat, gamma);
@@ -70,7 +75,7 @@ end
 end
 avgnumcommunities=mean(num_communities.(metric)(num_communities.(metric)~=0))
 gamma=gamma+0.01
-    end
+end
     null_modul.(metric)=zeros(length(subjList),1);
     %% make a null model for this metric for each subject with this gamma, and save modularity out of it
     for n=1:length(subjList);
@@ -111,11 +116,11 @@ end
 % filename=strcat('modularity_raw',run, '071619.csv') %need to figure out how to get the headers to work.
 % export(outfile,'File',fullfile(outdir,filename),'Delimiter',',')
 
-save(fullfile(outdir, strcat('nullmodul_withnulls_run',int2str(i))), 'null_modul') 
-save(fullfile(outdir, strcat('modul_withnulls_run',int2str(i))), 'modul')
-save(fullfile(outdir, strcat('numcommunities_withnulls_run',int2str(i))), 'num_communities')
-save(fullfile(outdir, strcat('avgnumcommunities_withnulls_run',int2str(i))), 'avgnumcommunities')
-save(fullfile(outdir, strcat('gamma_withnulls_run',int2str(i))), 'allgamma')
+%save(fullfile(outdir, strcat('nullmodul_absvalue_run',int2str(i))), 'null_modul') 
+save(fullfile(outdir, strcat('modul_absvalue_run',int2str(i))), 'modul')
+save(fullfile(outdir, strcat('numcommunities_absvalue_run',int2str(i))), 'num_communities')
+save(fullfile(outdir, strcat('avgnumcommunities_absvalue_run',int2str(i))), 'avgnumcommunities')
+save(fullfile(outdir, strcat('gamma_absvalue_run',int2str(i))), 'allgamma')
     
 end
 %save the all gamma variables, just in case
@@ -334,4 +339,3 @@ catch
     disp('saving csvs didnt work')
 end
 end
-
