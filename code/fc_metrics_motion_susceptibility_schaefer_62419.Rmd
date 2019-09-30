@@ -19,6 +19,7 @@ library(PerformanceAnalytics)
 library(ppcor)
 library(reshape2)
 library(Hmisc)
+library(R.matlab)
 ```
 
 # All runs averaged together
@@ -215,6 +216,57 @@ p + theme_classic() + stat_summary(fun.data="mean_sdl",fun.args = list(mult = 1)
         axis.title=element_text(size=14)) +scale_color_manual(values=c("#0072BD", "#D95319", "#EDB120", "#7E2F8E", "#77AC30", "#4DBEEE"))+geom_hline(yintercept = 0)
 ```
 
+## Load in nulls
+
+```{r load null data, include=FALSE}
+data_dir="~/Documents/projects/in_progress/arun_fc_metrics_motion/"
+dropbox_data="~/Dropbox/projects/in_progress/arun_fc_metrics_motion/output/data/Schaefer100_ICA_FIXwith_nulls/"
+null_run1_data=readMat(paste0(dropbox_data, "modul_withnulls_run1.mat"))
+null_run1_data <- data.frame(matrix(unlist(null_run1_data$allgamma, use.names = FALSE), nrow=length(null_run1_data$null.modul[[1]]), byrow=F))
+colnames(null_run1_data) <- c('Coherence', 'MutualInformation', 'MutualInformationTime','Pearson','Spearman', 'WaveletCoherence')
+null_run2_data=readMat(paste0(dropbox_data, "nullmodul_withnulls_run2.mat"))
+null_run2_data <- data.frame(matrix(unlist(null_run2_data$null.modul, use.names = FALSE), nrow=length(null_run2_data$null.modul[[1]]), byrow=F))
+colnames(null_run2_data) <- c('Coherence', 'MutualInformation', 'MutualInformationTime','Pearson','Spearman', 'WaveletCoherence')
+null_run3_data=readMat(paste0(dropbox_data, "nullmodul_withnulls_run3.mat"))
+null_run3_data <- data.frame(matrix(unlist(null_run3_data$null.modul, use.names = FALSE), nrow=length(null_run3_data$null.modul[[1]]), byrow=F))
+colnames(null_run3_data) <- c('Coherence', 'MutualInformation', 'MutualInformationTime','Pearson','Spearman', 'WaveletCoherence')
+null_run4_data=readMat(paste0(dropbox_data, "nullmodul_withnulls_run4.mat"))
+null_run4_data <- data.frame(matrix(unlist(null_run4_data$null.modul, use.names = FALSE), nrow=length(null_run4_data$null.modul[[1]]), byrow=F))
+colnames(null_run4_data) <- c('Coherence', 'MutualInformation', 'MutualInformationTime','Pearson','Spearman', 'WaveletCoherence')
+subject_list=read.csv(paste0(data_dir, "data/subjLists/S1200_Release_Subjects_Demographics.csv"))
+subject_list <- subject_list %>% dplyr::select(.,Subject:Age) %>% rename(., subject=Subject)
+#merge them with the original data files so that they have the right number of submects
+mydir="~/Documents/projects/in_progress/arun_fc_metrics_motion/data/subjData/Motion_S1200/rfMRI_REST1_LR/"
+motiondata1 <- read.csv(paste0(mydir,"/rfMRI_REST1_LR.csv"), header = FALSE, col.names = c("subject", "motion"))
+modul_data1 <- data.frame(subject_list, null_run1_data)
+null_alldata1 <- merge(modul_data1, alldata1, by = "subject", all = TRUE)
+null_alldata1 <- null_alldata1 %>% filter(., Pearson != 0)
+#recode age to be the median of the bins that are provided
+#null_alldata1$Age_numeric <- dplyr::recode(null_alldata1$Age, "22-25"= 23.5, "26-30"=28, "31-35"=33, "36+"=36)
+mydir="~/Documents/projects/in_progress/arun_fc_metrics_motion/data/subjData/Motion_S1200/rfMRI_REST1_RL/"
+motiondata2 <- read.csv(paste0(mydir,"/rfMRI_REST1_RL.csv"), header = FALSE, col.names = c("subject", "motion"))
+modul_data2 <- data.frame(subject_list, null_run2_data)
+null_alldata2 <- merge(modul_data2, alldata2, by = "subject", all = TRUE)
+null_alldata2 <- null_alldata2 %>% filter(., Pearson != 0)
+#recode age to be the median of the bins that are provided
+#null_alldata2$Age_numeric <- dplyr::recode(null_alldata2$Age, "22-25"= 23.5, "26-30"=28, "31-35"=33, "36+"=36)
+mydir="~/Documents/projects/in_progress/arun_fc_metrics_motion/data/subjData/Motion_S1200/rfMRI_REST2_LR/"
+motiondata3 <- read.csv(paste0(mydir,"/rfMRI_REST2_LR.csv"), header = FALSE, col.names = c("subject", "motion"))
+modul_data3 <- data.frame(subject_list, null_run3_data)
+null_alldata3 <- merge(modul_data3, alldata3, by = "subject", all = TRUE)
+null_alldata3 <- null_alldata3 %>% filter(., Pearson != 0)
+null_alldata3 <- na.omit(null_alldata3)
+#recode age to be the median of the bins that are provided
+#null_alldata3$Age_numeric <- dplyr::recode(null_alldata3$Age, "22-25"= 23.5, "26-30"=28, "31-35"=33, "36+"=36)
+mydir="~/Documents/projects/in_progress/arun_fc_metrics_motion/data/subjData/Motion_S1200/rfMRI_REST2_RL/"
+motiondata4 <- read.csv(paste0(mydir,"/rfMRI_REST2_RL.csv"), header = FALSE, col.names = c("subject", "motion"))
+modul_data4 <- data.frame(subject_list, null_run4_data)
+null_alldata4 <- merge(modul_data4, alldata4, by = "subject", all = TRUE)
+null_alldata4 <- null_alldata4 %>% filter(.,Pearson != 0)
+null_alldata4 <- na.omit(null_alldata4)
+```
+
+## Compare raw modularity to nulls calculated for each metric
 # Run 1
 
 ```{r load data, include=FALSE}
