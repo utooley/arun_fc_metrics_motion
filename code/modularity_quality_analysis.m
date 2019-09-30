@@ -31,7 +31,7 @@ for j=1:6
     metric=fc_metrics{j}
     modul.(metric)=zeros(length(subjList),1);
     avgweight.(metric)=zeros(length(subjList),1);
- num_communities.(metric)=zeros(length(subjList),1); %set up num communities
+    num_communities.(metric)=zeros(length(subjList),1); %set up num communities
  
 % while the average number of communities detected across participants is
 % less than 7, keep iterating
@@ -44,9 +44,10 @@ gamma=1;
 for n=1:length(subjList);
     sub=subjList(n);
     try
-    file=fullfile(data_dir,strcat('gordon_',num2str(sub),run,'FIX_matrices_', metric,'.mat'));
+    file=fullfile(data_dir,strcat('yeo_100_',num2str(sub),run,'FIX_matrices_', metric,'.mat'));
     load(file);
     %AdjMat=threshold_absolute(AdjMat,0);
+    %AdjMat=abs(AdjMat);
     avgweight.(metric)(n,1)=mean(AdjMat(AdjMat~=0)); %get average weight for each metric
 %% calculate the modularity quality index raw on each metric
 %probably won't use this, but worth having
@@ -54,9 +55,9 @@ if (j==4 | j == 5) %Pearson or spearman, use the negative weighting
     %Community Louvain outputs a measure of modularity and can take signed
     %networks as input. Weighted the negative connections asymmetrically, Q* as
     %recommended by Rubinov & Sporns
-    [M Q]=community_louvain(AdjMat, gamma, [], 'negative_asym');
-    modul.(metric)(n,1)=Q;
-    num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
+     [M Q]=community_louvain(AdjMat, gamma, [], 'negative_asym');
+     modul.(metric)(n,1)=Q;
+     num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
 else
     %use the default modularity
     [M Q]=community_louvain(AdjMat, gamma);
@@ -74,7 +75,7 @@ gamma=gamma+0.01
     %% make a null model for this metric for each subject with this gamma, and save modularity out of it
     for n=1:length(subjList);
     sub=subjList(n);
-    file=fullfile(data_dir,strcat('gordon_',num2str(sub),run,'FIX_matrices_', metric,'.mat'));
+    file=fullfile(data_dir,strcat('yeo_100_',num2str(sub),run,'FIX_matrices_', metric,'.mat'));
     try
     load(file);
     %rewire null model
@@ -101,7 +102,7 @@ else
     disp('This subject not found')
     end
     end
-    allgamma.(metric).(run_name)=gamma
+     allgamma.(metric).(run_name)=gamma
 end
 %% Save outfiles for each run
 % outfile=dataset(avgweight.Pearson, avgweight.Spearman, avgweight.Coherence, avgweight.WaveletCoherence, avgweight.MutualInformation, avgweight.MutualInformationTime, modul.Pearson, modul.Spearman, modul.Coherence, modul.WaveletCoherence, modul.MutualInformation, modul.MutualInformationTime, num_communities.Pearson, num_communities.Spearman, num_communities.Coherence, num_communities.WaveletCoherence, num_communities.MutualInformation, num_communities.MutualInformationTime,  repmat(allgamma.Pearson.(run_name),length(subjList),1), repmat(allgamma.Spearman.(run_name),length(subjList),1), repmat(allgamma.Coherence.(run_name),length(subjList),1), repmat(allgamma.WaveletCoherence.(run_name),length(subjList), 1), repmat(allgamma.MutualInformation.(run_name), length(subjList),1), repmat(allgamma.MutualInformationTime.(run_name), length(subjList), 1))
@@ -118,7 +119,7 @@ save(fullfile(outdir, strcat('gamma_withnulls_run',int2str(i))), 'allgamma')
     
 end
 %save the all gamma variables, just in case
-filename=fullfile(outdir,'allgamma_modularity_withnulls_091419.mat')
+filename=fullfile(outdir,'allgamma_modularity_withnulls_092419.mat')
 save(filename, 'allgamma')
 
 
