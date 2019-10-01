@@ -32,7 +32,7 @@ for j=1:6
     metric=fc_metrics{j}
     modul.(metric)=zeros(length(subjList),1);
     avgweight.(metric)=zeros(length(subjList),1);
- num_communities.(metric)=zeros(length(subjList),1); %set up num communities
+    num_communities.(metric)=zeros(length(subjList),1); %set up num communities
  
 % while the average number of communities detected across participants is
 % less than 7, keep iterating
@@ -48,61 +48,65 @@ for n=1:length(subjList);
     file=fullfile(data_dir,strcat('yeo_100_',num2str(sub),run,'FIX_matrices_', metric,'.mat'));
     load(file);
     %AdjMat=threshold_absolute(AdjMat,0);
-    AdjMat=abs(AdjMat);
+    %AdjMat=abs(AdjMat);
     avgweight.(metric)(n,1)=mean(AdjMat(AdjMat~=0)); %get average weight for each metric
 %% calculate the modularity quality index raw on each metric
 %probably won't use this, but worth having
-%if (j==4 | j == 5) %Pearson or spearman, use the negative weighting  
+if (j==4 | j == 5) %Pearson or spearman, use the negative weighting  
     %Community Louvain outputs a measure of modularity and can take signed
     %networks as input. Weighted the negative connections asymmetrically, Q* as
     %recommended by Rubinov & Sporns
-%     [M Q]=community_louvain(AdjMat, gamma, [], 'negative_asym');
-%     modul.(metric)(n,1)=Q;
-%     num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
-%else
+     [M Q]=community_louvain(AdjMat, gamma, [], 'negative_asym');
+     modul.(metric)(n,1)=Q;
+     num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
+     else
+    [M Q]=community_louvain(AdjMat, gamma, [], 'negative_asym');
+    modul.(metric)(n,1)=Q;
+    num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
+else
     %use the default modularity
     [M Q]=community_louvain(AdjMat, gamma);
     modul.(metric)(n,1)=Q;
     num_communities.(metric)(n,1)=length(unique(M));
-%end
+end
     catch
     disp('This subject not found')
     end
 end
 avgnumcommunities=mean(num_communities.(metric)(num_communities.(metric)~=0))
 gamma=gamma+0.01
+end
+    null_modul.(metric)=zeros(length(subjList),1);
+    %% make a null model for this metric for each subject with this gamma, and save modularity out of it
+    for n=1:length(subjList);
+    sub=subjList(n);
+    file=fullfile(data_dir,strcat('yeo_100_',num2str(sub),run,'FIX_matrices_', metric,'.mat'));
+    try
+    load(file);
+    %rewire null model
+    %for c=1:100
+    null=null_model_und_sign(AdjMat, 5, 0.3);
+    %run modularity on it, save Q
+    if (j==4 | j == 5) %Pearson or spearman, use the negative weighting  
+    %Community Louvain outputs a measure of modularity and can take signed
+    %networks as input. Weighted the negative connections asymmetrically, Q* as
+    %recommended by Rubinov & Sporns
+    [M Q]=community_louvain(null, gamma, [], 'negative_asym');
+    %modul_temp(c)=Q;
+    null_modul.(metric)(n,1)=Q
+else
+    %use the default modularity
+    [M Q]=community_louvain(null, gamma);
+    %modul_temp(c)=Q;
+    null_modul.(metric)(n,1)=Q;
     end
-%     null_modul.(metric)=zeros(length(subjList),1);
-%     %% make a null model for this metric for each subject with this gamma, and save modularity out of it
-%     for n=1:length(subjList);
-%     sub=subjList(n);
-%     file=fullfile(data_dir,strcat('gordon_',num2str(sub),run,'FIX_matrices_', metric,'.mat'));
-%     try
-%     load(file);
-%     %rewire null model
-%     %for c=1:100
-%     null=null_model_und_sign(AdjMat, 5, 0.3);
-%     %run modularity on it, save Q
-%     if (j==4 | j == 5) %Pearson or spearman, use the negative weighting  
-%     %Community Louvain outputs a measure of modularity and can take signed
-%     %networks as input. Weighted the negative connections asymmetrically, Q* as
-%     %recommended by Rubinov & Sporns
-%     [M Q]=community_louvain(null, gamma, [], 'negative_asym');
-%     %modul_temp(c)=Q;
-%     null_modul.(metric)(n,1)=Q
-% else
-%     %use the default modularity
-%     [M Q]=community_louvain(null, gamma);
-%     %modul_temp(c)=Q;
-%     null_modul.(metric)(n,1)=Q;
-%     end
-%     %end
-%     %for this subject, average across 100 runs of the null
-%     %null_modul.(metric)(n,1)=mean(modul_temp(:));
-%     catch
-%     disp('This subject not found')
-%     end
-%     end
+    %end
+    %for this subject, average across 100 runs of the null
+    %null_modul.(metric)(n,1)=mean(modul_temp(:));
+    catch
+    disp('This subject not found')
+    end
+    end
      allgamma.(metric).(run_name)=gamma
 end
 %% Save outfiles for each run
