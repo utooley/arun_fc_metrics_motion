@@ -216,13 +216,14 @@ p + theme_classic() + stat_summary(fun.data="mean_sdl",fun.args = list(mult = 1)
         axis.title=element_text(size=14)) +scale_color_manual(values=c("#0072BD", "#D95319", "#EDB120", "#7E2F8E", "#77AC30", "#4DBEEE"))+geom_hline(yintercept = 0)
 ```
 
+# Null models
 ## Load in nulls
 
 ```{r load null data, include=FALSE}
 data_dir="~/Documents/projects/in_progress/arun_fc_metrics_motion/"
-dropbox_data="~/Dropbox/projects/in_progress/arun_fc_metrics_motion/output/data/Schaefer100_ICA_FIXwith_nulls/"
-null_run1_data=readMat(paste0(dropbox_data, "modul_withnulls_run1.mat"))
-null_run1_data <- data.frame(matrix(unlist(null_run1_data$allgamma, use.names = FALSE), nrow=length(null_run1_data$null.modul[[1]]), byrow=F))
+dropbox_data="~/Dropbox/projects/in_progress/arun_fc_metrics_motion/output/data/Schaefer100_ICA_FIX/with_nulls/"
+null_run1_data=readMat(paste0(dropbox_data, "nullmodul_withnulls_run1.mat"))
+null_run1_data <- data.frame(matrix(unlist(null_run1_data$null.modul, use.names = FALSE), nrow=length(null_run1_data$null.modul[[1]]), byrow=F))
 colnames(null_run1_data) <- c('Coherence', 'MutualInformation', 'MutualInformationTime','Pearson','Spearman', 'WaveletCoherence')
 null_run2_data=readMat(paste0(dropbox_data, "nullmodul_withnulls_run2.mat"))
 null_run2_data <- data.frame(matrix(unlist(null_run2_data$null.modul, use.names = FALSE), nrow=length(null_run2_data$null.modul[[1]]), byrow=F))
@@ -267,6 +268,39 @@ null_alldata4 <- na.omit(null_alldata4)
 ```
 
 ## Compare raw modularity to nulls calculated for each metric
+
+```{r plot of raw modularity across different metrics}
+metrics=c("Pearson", "Spearman", "Coherence", "WaveletCoherence", "MutualInformation","MutualInformationTime")
+#calculate the relationship between raw modularity and motion for each of the 4 runs
+for (i in 1:4){
+  assign("data",get(paste0("null_alldata",i)))
+  null_modul=numeric(6)
+   for (l in 1:6){
+    assign("metric", metrics[l])
+    temp <- data %>% dplyr::select(.,matches(paste0("^",metric,"$")))
+    #print(colnames(temp))
+    # temp2 <- cbind(temp$Age_numeric, temp[3])
+    null_modul[l]<- mean(temp[,1])
+     
+   }
+    assign(paste0("null_modul_estimate_run",i),data.frame(null_modul, metrics))
+}
+#create an id variable in the all dataframe created earlier
+all$type <- "empirical"
+#Melt them together
+all_null <- cbind(null_modul_estimate_run1, null_modul_estimate_run2, null_modul_estimate_run3, null_modul_estimate_run4)
+all_null$metrics <- factor(all_null$metrics, levels=c("Pearson", "Spearman", "Coherence", "WaveletCoherence", "MutualInformation","MutualInformationTime"), labels=c("P", "S", "MIT", "C","WC", "MIF") )
+colnames(all_null) <- c("estimate1", "metrics", "estimate2","metrics", "estimate3", "metrics","estimate4", "metrics")
+all_null$type <- "null"
+all_null <- melt(all_null, id.vars = c("metrics", "type"))
+everything <- rbind(all,all_null)
+#Plot them like Arun, using his colors
+p<-ggplot(everything, aes(x=metrics, y=value, color=type)) + 
+  geom_jitter(position=position_jitter(0.2), cex=2.5)
+p + theme_classic() + stat_summary(fun.data="mean_sdl",fun.args = list(mult = 1) ,
+                 geom="pointrange", shape=95, cex=1) + labs(title="100-node Yeo parcellation",x="", y = "Modularity quality index (Q)")+ theme(plot.title = element_text(hjust = 0.5), legend.position = "none")+ theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14)) +scale_color_manual(values=c("#0072BD", "#D95319", "#EDB120", "#7E2F8E", "#77AC30", "#4DBEEE"))
+```
 # Run 1
 
 ```{r load data, include=FALSE}
