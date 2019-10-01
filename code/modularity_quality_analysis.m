@@ -93,7 +93,7 @@ end
     %recommended by Rubinov & Sporns
     [M Q]=community_louvain(null, gamma, [], 'negative_asym');
     %modul_temp(c)=Q;
-    null_modul.(metric)(n,1)=Q
+    null_modul.(metric)(n,1)=Q;
 else
     %use the default modularity
     [M Q]=community_louvain(null, gamma);
