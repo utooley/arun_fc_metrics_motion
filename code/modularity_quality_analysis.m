@@ -9,8 +9,8 @@ outdir='/Users/utooley/Desktop/cluster/jux/mackey_group/Ursula/projects/in_progr
 %working directly on the cluster
 subj_dir='/data/jag/bassett-lab/hcp_Max/Data/Covariates'
 data_dir='/data/jag/bassett-lab/hcp_Max/Data/FunctionalConnectivityMatrices'
-outdir='/data/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/output/data/Schaefer_100_ICA_FIX/abs_value_PearsonSpearman '
-outdir='~/Documents/projects/in_progress/arun_fc_metrics_motion/output/data/Schaefer_100_ICA_FIX/abs_value_PearsonSpearman'
+outdir='/data/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/output/data/Schaefer_100_ICA_FIX/'
+addpath(genpath('/data/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/code/'))
 %subject list
 subjList=readtable(fullfile(subj_dir, 'S1200_Release_Subjects_Demographics.csv'));
 subjList=subjList.Subject;
@@ -273,8 +273,9 @@ clear numcommunities
 parcels=readtable('/data/picsl/mackey_group/tools/gordon333/Parcels.csv')
 parcels=parcels(:,{'Community','ParcelID'})
 parcels.Community=categorical(parcels.Community)
+parcels=double(parcels.Community)
 %For Yeo
-parcels=readtable('~/Documents/toolboxes/parcellations/')
+parcels=readtable('~/Documents/tools/parcellations/Yeo_from_freesurfer/yeo_100_17net_affiliation.txt','ReadVariableNames', false)
 
 %%%%%%
 %for each of four runs
@@ -293,46 +294,48 @@ for j=1:6
 %for each subject
 %%%%%%
     for n=1:length(subjList);
-        sub=subjList(n);
+        sub=subjList(n)
         try
-        file=fullfile(data_dir,strcat('gordon_',num2str(sub),run,'FIX_matrices_', metric,'.mat'));
+        file=fullfile(data_dir,strcat('yeo_100_',num2str(sub),run,'FIX_matrices_', metric,'.mat'));
         load(file);
-        AdjMat=threshold_absolute(AdjMat,0);
+        %AdjMat=threshold_absolute(AdjMat,0);
         avgweight.(metric)(n,1)=mean(AdjMat(AdjMat~=0)); %get average weight for each metric
     %% calculate the modularity quality index raw on each metric
     %probably won't use this, but worth having
-%     if (j==4 | j == 5) %Pearson or spearman, use the negative weighting  
-%         %Community Louvain outputs a measure of modularity and can take signed
-%         %networks as input. Weighted the negative connections asymmetrically, Q* as
-%         %recommended by Rubinov & Sporns
-%         %[M Q]=community_louvain(AdjMat, [], double(parcels.Community), 'negative_asym');
-%         [M Q]=modul_only(AdjMat, [], double(parcels.Community), 'negative_asym');
-%         modul.(metric)(n,1)=Q;
-%         Q %check that it's still the same
-%         num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
-%     else
+    if (j==4 | j == 5) %Pearson or spearman, use the negative weighting  
+        %Community Louvain outputs a measure of modularity and can take signed
+        %networks as input. Weighted the negative connections asymmetrically, Q* as
+        %recommended by Rubinov & Sporns
+        %[M Q]=community_louvain(AdjMat, [], double(parcels.Community), 'negative_asym');
+        [M Q]=modul_only(AdjMat, [], table2array(parcels), 'negative_asym');
+        modul.(metric)(n,1)=Q;
+        Q %check that it's still the same
+        %num_communities.(metric)(n,1)=length(unique(M)); %how many communities were output
+    else
         %use the default modularity
         %[M Q]=community_louvain(AdjMat, [], double(parcels.Community));
-        [M Q]=modul_only(AdjMat, [], double(parcels.Community));
+        [M Q]=modul_only(AdjMat, [],table2array(parcels));
         modul.(metric)(n,1)=Q; %check that it's still the same.
-        num_communities.(metric)(n,1)=length(unique(M));
-        Q =QFModul(double(parcels.Community), AdjMat); %try a different modularity implementation
+        %num_communities.(metric)(n,1)=length(unique(M));
+        Q =QFModul(table2array(parcels), AdjMat); %try a different modularity implementation
         modul2.(metric)(n,1)=Q;
-%     end
+     end
         catch
         disp('This subject not found')
         end
     end
 end
 %% Save outfiles for each run
-save(fullfile(outdir, strcat('modul_pose_gordon_partition',int2str(i))), 'modul')
-save(fullfile(outdir, strcat('modul2_pos_gordon_partition',int2str(i))), 'modul2')
-save(fullfile(outdir, strcat('numcomms_pos_gordon_partition',int2str(i))), 'num_communities')
+save(fullfile(outdir, strcat('new_modul_yeo_100_partition',int2str(i))), 'modul')
+save(fullfile(outdir, strcat('new_modul2_yeo_100_partition',int2str(i))), 'modul2')
+%save(fullfile(outdir, strcat('numcomms_pos_gordon_partition',int2str(i))), 'num_communities')
 try
-    outfile=dataset(avgweight.Pearson, avgweight.Spearman, avgweight.Coherence, avgweight.WaveletCoherence, avgweight.MutualInformation, avgweight.MutualInformationTime, modul.Pearson, modul.Spearman, modul.Coherence, modul.WaveletCoherence, modul.MutualInformation, modul.MutualInformationTime, num_communities.Pearson, num_communities.Spearman, num_communities.Coherence, num_communities.WaveletCoherence, num_communities.MutualInformation, num_communities.MutualInformationTime,  repmat(allgamma.Pearson.(run_name),length(subjList),1), repmat(allgamma.Spearman.(run_name),length(subjList),1), repmat(allgamma.Coherence.(run_name),length(subjList),1), repmat(allgamma.WaveletCoherence.(run_name),length(subjList), 1), repmat(allgamma.MutualInformation.(run_name), length(subjList),1), repmat(allgamma.MutualInformationTime.(run_name), length(subjList), 1))
-    header={'avgweight_Pearson',	'avgweight_Spearman',	'avgweight_Coherence',	'avgweight_WaveletCoherence',	'avgweight_MutualInformation',	'avgweight_MutualInformationTime',	'modul_Pearson',	'modul_Spearman',	'modul_Coherence',	'modul_WaveletCoherence',	'modul_MutualInformation',	'modul_MutualInformationTime'	,'num_communities_Pearson'	,'num_communities_Spearman'	,'num_communities_Coherence'	,'num_communities_WaveletCoherence','num_communities_MutualInformation'	,'num_communities_MutualInformationTime'	,'allgamma_Pearson'	,'allgamma_Spearman',	'allgamma_Coherence','allgamma_WaveletCoherence','allgamma_MutualInformation','allgamma_MutualInformationTime'}
+    outfile=dataset(avgweight.Pearson, avgweight.Spearman, avgweight.Coherence, avgweight.WaveletCoherence, avgweight.MutualInformation, avgweight.MutualInformationTime, modul.Pearson, modul.Spearman, modul.Coherence, modul.WaveletCoherence, modul.MutualInformation, modul.MutualInformationTime)
+    %num_communities.Pearson, num_communities.Spearman, num_communities.Coherence, num_communities.WaveletCoherence, num_communities.MutualInformation, num_communities.MutualInformationTime,  repmat(allgamma.Pearson.(run_name),length(subjList),1), repmat(allgamma.Spearman.(run_name),length(subjList),1), repmat(allgamma.Coherence.(run_name),length(subjList),1), repmat(allgamma.WaveletCoherence.(run_name),length(subjList), 1), repmat(allgamma.MutualInformation.(run_name), length(subjList),1), repmat(allgamma.MutualInformationTime.(run_name), length(subjList), 1))
+    header={'avgweight_Pearson',	'avgweight_Spearman',	'avgweight_Coherence',	'avgweight_WaveletCoherence',	'avgweight_MutualInformation',	'avgweight_MutualInformationTime',	'modul_Pearson',	'modul_Spearman',	'modul_Coherence',	'modul_WaveletCoherence',	'modul_MutualInformation',	'modul_MutualInformationTime'}
+        %'num_communities_Pearson'	,'num_communities_Spearman'	,'num_communities_Coherence'	,'num_communities_WaveletCoherence','num_communities_MutualInformation'	,'num_communities_MutualInformationTime'	,'allgamma_Pearson'	,'allgamma_Spearman',	'allgamma_Coherence','allgamma_WaveletCoherence','allgamma_MutualInformation','allgamma_MutualInformationTime'}
     outfile.Properties.VarNames=header
-    filename=strcat('modularity_Gordon_partition',run, '072719.csv') %need to figure out how to get the headers to work.
+    filename=strcat('modularity_yeo_100_partition',run, '040920.csv') %need to figure out how to get the headers to work.
     export(outfile,'File',fullfile(outdir,filename),'Delimiter',',')
 catch
     
