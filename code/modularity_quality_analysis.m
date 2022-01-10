@@ -8,9 +8,9 @@
 % outdir='/Users/utooley/Desktop/cluster/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/output/data/Schaefer_100_ICA_FIX/abs_value_PearsonSpearman'
 %working directly on the cluster
 subj_dir='/data/jag/bassett-lab/hcp_Max/Data/Covariates'
-data_dir='/data/jag/bassett-lab/hcp_Max/Data/FunctionalConnectivityMatrices'
-outdir='/data/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/output/data/Schaefer_100_ICA_FIX/'
-addpath(genpath('/data/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/code/functions'))
+data_dir='/cbica/home/mahadeva/motion-FC-metrics/data/FunctionalConnectivityMatrices_gsr_filter'
+outdir='/cbica/home/tooleyu/arun_fc_metrics_motion/output/Schaefer_100_ICA_FIX/'
+addpath(genpath('/cbica/home/tooleyu/arun_fc_metrics_motion/code/functions'))
 %subject list
 subjList=readtable(fullfile(subj_dir, 'S1200_Release_Subjects_Demographics.csv'));
 subjList=subjList.Subject;
