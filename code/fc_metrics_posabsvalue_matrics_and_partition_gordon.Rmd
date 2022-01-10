@@ -447,7 +447,7 @@ p
 
 ```{r load data, include=FALSE}
 data_dir="~/Documents/projects/in_progress/arun_fc_metrics_motion/"
-dropbox_data="/data/jux/mackey_group/Ursula/projects/in_progress/arun_fc_metrics_motion/output/data/Schaefer_100_ICA_FIX/"
+dropbox_data="/cbica/home/tooleyu/projects/in_progress/arun_fc_metrics_motion/output/Schaefer_100_ICA_FIX/"
 run1_data=read.csv(paste0(dropbox_data, "modularity_yeo_100_partition_REST1_LR_040920.csv"))
 run2_data=read.csv(paste0(dropbox_data, "modularity_yeo_100_partition_REST1_RL_040920.csv"))
 run3_data=read.csv(paste0(dropbox_data, "modularity_yeo_100_partition_REST2_LR_040920.csv"))
